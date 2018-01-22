@@ -32,7 +32,7 @@ static void ThrowConfirmationNeededException(const CDiffContext& ctxt, const Str
 		const String& src, const String& dest, bool destIsSide);
 
 ContentsChangedException::ContentsChangedException(const String& failpath)
-	: m_msg(string_format_string1(
+	: m_msg(strutils::format_string1(
 	        _("Operation aborted!\n\nFolder contents at disks has changed, path\n%1\nwas not found.\n\nPlease refresh the compare."),
 	        failpath))
 {
@@ -56,7 +56,7 @@ static void ThrowConfirmCopy(const CDiffContext& ctxt, int origin, int destinati
 {
 	String caption = _("Confirm Copy");
 	String strQuestion = count == 1 ? _("Are you sure you want to copy:") : 
-		string_format(_("Are you sure you want to copy %d items:").c_str(), count);
+		strutils::format(_("Are you sure you want to copy %d items:").c_str(), count);
 
 	ThrowConfirmationNeededException(ctxt, caption, strQuestion, origin,
 		destination, count,	src, dest, destIsSide);
@@ -80,7 +80,7 @@ static void ThrowConfirmMove(const CDiffContext& ctxt, int origin, int destinati
 {
 	String caption = _("Confirm Move");
 	String strQuestion = count == 1 ? _("Are you sure you want to move:") : 
-		string_format(_("Are you sure you want to move %d items:").c_str(), count);
+		strutils::format(_("Are you sure you want to move %d items:").c_str(), count);
 
 	ThrowConfirmationNeededException(ctxt, caption, strQuestion, origin,
 		destination, count,	src, dest, destIsSide);
@@ -294,7 +294,7 @@ uintptr_t FindItemFromPaths(const CDiffContext& ctxt, const String& pathLeft, co
 	String file2 = paths::FindFileName(pathRight);
 
 	// Filenames must be identical
-	if (string_compare_nocase(file1, file2) != 0)
+	if (strutils::compare_nocase(file1, file2) != 0)
 		return NULL;
 
 	String path1(pathLeft, 0, pathLeft.length() - file1.length()); // include trailing backslash
@@ -415,7 +415,7 @@ bool AreItemsOpenable(const CDiffContext& ctxt, SELECTIONTYPE selectionType, con
 	// Allow to compare items if left & right path refer to same directory
 	// (which means there is effectively two files involved). No need to check
 	// side flags. If files weren't on both sides, we'd have no DIFFITEMs.
-	if (string_compare_nocase(sLeftBasePath, sRightBasePath) == 0)
+	if (strutils::compare_nocase(sLeftBasePath, sRightBasePath) == 0)
 		return true;
 
 	return false;
@@ -473,7 +473,7 @@ bool AreItemsOpenable(const CDiffContext& ctxt, const DIFFITEM & di1, const DIFF
 	// Allow to compare items if left & right path refer to same directory
 	// (which means there is effectively two files involved). No need to check
 	// side flags. If files weren't on both sides, we'd have no DIFFITEMs.
-	if (string_compare_nocase(sLeftBasePath, sMiddleBasePath) == 0 && string_compare_nocase(sLeftBasePath, sRightBasePath) == 0)
+	if (strutils::compare_nocase(sLeftBasePath, sMiddleBasePath) == 0 && strutils::compare_nocase(sLeftBasePath, sRightBasePath) == 0)
 		return true;
 
 	return false;
@@ -521,10 +521,7 @@ bool IsItemExistAll(const CDiffContext& ctxt, const DIFFITEM & di)
 	// Not a valid diffitem, one of special items (e.g "..")
 	if (di.diffcode.diffcode == 0)
 		return false;
-	if (ctxt.GetCompareDirs() == 2)
-		return di.diffcode.isSideBoth();
-	else
-		return di.diffcode.isSideAll();
+	return di.diffcode.existAll();
 }
 
 
@@ -610,7 +607,16 @@ bool IsShowable(const CDiffContext& ctxt, const DIFFITEM & di, const DirViewFilt
 				if (di.diffcode.isResultSame() && !filter.show_identical)
 					return false;
 				if (di.diffcode.isResultDiff() && !filter.show_different)
+				{
+					uintptr_t diffpos = ctxt.GetFirstChildDiffPosition(reinterpret_cast<uintptr_t>(&di));
+					while (diffpos)
+					{
+						const DIFFITEM &dic = ctxt.GetNextSiblingDiffPosition(diffpos);
+						if (IsShowable(ctxt, dic, filter))
+							return true;
+					}
 					return false;
+				}
 			}
 		}
 	}
@@ -633,6 +639,15 @@ bool IsShowable(const CDiffContext& ctxt, const DIFFITEM & di, const DirViewFilt
 			return false;
 		if (di.diffcode.isResultDiff() && !filter.show_different)
 			return false;
+		if (ctxt.GetCompareDirs() > 2)
+		{
+			if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF1STONLY && !filter.show_different_left_only)
+				return false;
+			if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF2NDONLY && !filter.show_different_middle_only)
+				return false;
+			if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF3RDONLY && !filter.show_different_right_only)
+				return false;
+		}
 	}
 	return true;
 }
@@ -673,7 +688,7 @@ bool GetOpenOneItem(const CDiffContext& ctxt, uintptr_t pos1, const DIFFITEM *pd
 		if (path1Exists != paths::IS_EXISTING_DIR || path2Exists != paths::IS_EXISTING_DIR)
 		{
 			String invalid = path1Exists == paths::IS_EXISTING_DIR ? paths[0] : paths[1];
-			errmsg = string_format_string1(
+			errmsg = strutils::format_string1(
 				_("Operation aborted!\n\nFolder contents at disks has changed, path\n%1\nwas not found.\n\nPlease refresh the compare."),
 				invalid);
 			return false;
@@ -937,7 +952,7 @@ PathContext GetItemFileNames(const CDiffContext& ctxt, const DIFFITEM & di)
 /**
  * @brief Return image index appropriate for this row
  */
-int GetColImage(const CDiffContext&ctxt, const DIFFITEM & di)
+int GetColImage(const DIFFITEM & di)
 {
 	// Must return an image index into image list created above in OnInitDialog
 	if (di.diffcode.isResultError())
@@ -949,12 +964,12 @@ int GetColImage(const CDiffContext&ctxt, const DIFFITEM & di)
 	if (di.diffcode.isSideFirstOnly())
 		return (di.diffcode.isDirectory() ? DIFFIMG_LDIRUNIQUE : DIFFIMG_LUNIQUE);
 	if (di.diffcode.isSideSecondOnly())
-		return (ctxt.GetCompareDirs() < 3 ? 
+		return ((di.diffcode.diffcode & DIFFCODE::THREEWAY) == 0 ? 
 			(di.diffcode.isDirectory() ? DIFFIMG_RDIRUNIQUE : DIFFIMG_RUNIQUE) :
 			(di.diffcode.isDirectory() ? DIFFIMG_MDIRUNIQUE : DIFFIMG_MUNIQUE));
 	if (di.diffcode.isSideThirdOnly())
 		return (di.diffcode.isDirectory() ? DIFFIMG_RDIRUNIQUE : DIFFIMG_RUNIQUE);
-	if (ctxt.GetCompareDirs() == 3)
+	if ((di.diffcode.diffcode & DIFFCODE::THREEWAY) != 0)
 	{
 		if (!di.diffcode.exists(0))
 			return (di.diffcode.isDirectory() ? DIFFIMG_LDIRMISSING : DIFFIMG_LMISSING);
@@ -1089,17 +1104,17 @@ void MarkForRescan(DIFFITEM &di)
 String FormatFilesAffectedString(int nFilesAffected, int nFilesTotal)
 {
 	if (nFilesAffected == nFilesTotal)
-		return string_format_string1(_("(%1 Files Affected)"), NumToStr(nFilesTotal));
+		return strutils::format_string1(_("(%1 Files Affected)"), NumToStr(nFilesTotal));
 	else
-		return string_format_string2(_("(%1 of %2 Files Affected)"), NumToStr(nFilesAffected), NumToStr(nFilesTotal));
+		return strutils::format_string2(_("(%1 of %2 Files Affected)"), NumToStr(nFilesAffected), NumToStr(nFilesTotal));
 }
 
 String FormatMenuItemString(const String& fmt1, const String& fmt2, int count, int total)
 {
 	if (count == total)
-		return string_format_string1(fmt1, NumToStr(total));
+		return strutils::format_string1(fmt1, NumToStr(total));
 	else
-		return string_format_string2(fmt2, NumToStr(count), NumToStr(total));
+		return strutils::format_string2(fmt2, NumToStr(count), NumToStr(total));
 }
 
 String FormatMenuItemString(SIDE_TYPE src, SIDE_TYPE dst, int count, int total)
@@ -1333,14 +1348,14 @@ AllowUpwardDirectory::ReturnCode
 CheckAllowUpwardDirectory(const CDiffContext& ctxt, const CTempPathContext *pTempPathContext, PathContext &pathsParent)
 {
 	std::vector<String> path(ctxt.GetCompareDirs());
-	for (int i = 0; i < path.size(); ++i)
+	for (int i = 0; i < static_cast<int>(path.size()); ++i)
 		path[i] = ctxt.GetNormalizedPath(i);
 
 	// If we have temp context it means we are comparing archives
 	if (pTempPathContext)
 	{
 		std::vector<String> name(path.size());
-		for (int i = 0; i < path.size(); ++i)
+		for (int i = 0; i < static_cast<int>(path.size()); ++i)
 			name[i] = paths::FindFileName(path[i]);
 
 		String::size_type cchLeftRoot = pTempPathContext->m_strRoot[0].length();
@@ -1349,13 +1364,13 @@ CheckAllowUpwardDirectory(const CDiffContext& ctxt, const CTempPathContext *pTem
 			pathsParent.SetSize(ctxt.GetCompareDirs());
 			if (pTempPathContext->m_pParent)
 			{
-				for (int i = 0; i < path.size(); ++i)
+				for (int i = 0; i < static_cast<int>(path.size()); ++i)
 					pathsParent[i] = pTempPathContext->m_pParent->m_strRoot[i];
 				if (paths::GetPairComparability(pathsParent) != paths::IS_EXISTING_DIR)
 					return AllowUpwardDirectory::Never;
 				return AllowUpwardDirectory::ParentIsTempPath;
 			}
-			for (int i = 0; i < path.size(); ++i)
+			for (int i = 0; i < static_cast<int>(path.size()); ++i)
 				pathsParent[i] = pTempPathContext->m_strDisplayRoot[i];
 			if (pathsParent.size() < 3)
 			{
@@ -1368,14 +1383,14 @@ CheckAllowUpwardDirectory(const CDiffContext& ctxt, const CTempPathContext *pTem
 					return AllowUpwardDirectory::Never;
 			}
 			if (path.size() == 2 && 
-				string_compare_nocase(name[0], _T("ORIGINAL")) == 0 && 
-				string_compare_nocase(name[1], _T("ALTERED")) == 0)
+				strutils::compare_nocase(name[0], _T("ORIGINAL")) == 0 && 
+				strutils::compare_nocase(name[1], _T("ALTERED")) == 0)
 			{
-				for (int i = 0; i < path.size(); ++i)
+				for (int i = 0; i < static_cast<int>(path.size()); ++i)
 					pathsParent[i] = paths::GetParentPath(pathsParent[i]);
-				for (int i = 0; i < path.size(); ++i)
+				for (int i = 0; i < static_cast<int>(path.size()); ++i)
 					name[i] = paths::FindFileName(pathsParent[i]);
-				if (string_compare_nocase(name[0], name[1]) == 0)
+				if (strutils::compare_nocase(name[0], name[1]) == 0)
 				{
 					if (paths::GetPairComparability(pathsParent) != paths::IS_EXISTING_DIR)
 						return AllowUpwardDirectory::Never;
@@ -1388,7 +1403,7 @@ CheckAllowUpwardDirectory(const CDiffContext& ctxt, const CTempPathContext *pTem
 
 	// If regular parent folders exist, allow opening them
 	pathsParent.SetSize(ctxt.GetCompareDirs());
-	for (int i = 0; i < path.size(); ++i)
+	for (int i = 0; i < static_cast<int>(path.size()); ++i)
 		pathsParent[i] = paths::GetParentPath(path[i]);
 	if (paths::GetPairComparability(pathsParent) != paths::IS_EXISTING_DIR)
 		return AllowUpwardDirectory::Never;

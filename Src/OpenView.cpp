@@ -107,11 +107,9 @@ COpenView::COpenView()
 	, m_pUpdateButtonStatusThread(NULL)
 	, m_bRecurse(FALSE)
 	, m_pDropHandler(NULL)
+	, m_dwFlags()
+	, m_bAutoCompleteReady()
 {
-	m_bAutoCompleteReady[0] = false;
-	m_bAutoCompleteReady[1] = false;
-	m_bAutoCompleteReady[2] = false;
-	memset(m_dwFlags, 0, sizeof(m_dwFlags));
 }
 
 COpenView::~COpenView()
@@ -452,7 +450,7 @@ void COpenView::OnOK()
 	// If left path is a project-file, load it
 	String ext;
 	paths::SplitFilename(m_strPath[0], NULL, NULL, &ext);
-	if (m_strPath[1].empty() && string_compare_nocase(ext, ProjectFile::PROJECTFILE_EXT) == 0)
+	if (m_strPath[1].empty() && strutils::compare_nocase(ext, ProjectFile::PROJECTFILE_EXT) == 0)
 		LoadProjectFile(m_strPath[0]);
 
 	pathsType = paths::GetPairComparability(m_files, IsArchiveFile);
@@ -467,7 +465,7 @@ void COpenView::OnOK()
 	{
 		// If user has edited path by hand, expand environment variables
 		bool bExpand = false;
-		if (string_compare_nocase(m_strBrowsePath[index], m_files[index]) != 0)
+		if (strutils::compare_nocase(m_strBrowsePath[index], m_files[index]) != 0)
 			bExpand = true;
 
 		if (!paths::IsURLorCLSID(m_files[index]))
@@ -484,7 +482,7 @@ void COpenView::OnOK()
 	UpdateData(FALSE);
 	KillTimer(IDT_CHECKFILES);
 
-	String filter(string_trim_ws(m_strExt));
+	String filter(strutils::trim_ws(m_strExt));
 
 	// If prefix found from start..
 	if (filter.substr(0, filterPrefix.length()) == filterPrefix)
@@ -526,9 +524,11 @@ void COpenView::OnOK()
 	if (GetOptionsMgr()->GetBool(OPT_CLOSE_WITH_OK))
 		GetParentFrame()->PostMessage(WM_CLOSE);
 
+	PathContext tmpPathContext(pDoc->m_files);
+	PackingInfo tmpPackingInfo(pDoc->m_infoHandler);
 	GetMainFrame()->DoFileOpen(
-		&PathContext(pDoc->m_files), &std::vector<DWORD>(pDoc->m_dwFlags, pDoc->m_dwFlags + 3)[0], 
-		NULL, _T(""), !!pDoc->m_bRecurse, NULL, _T(""), &PackingInfo(pDoc->m_infoHandler));
+		&tmpPathContext, std::array<DWORD, 3>(pDoc->m_dwFlags).data(), 
+		NULL, _T(""), !!pDoc->m_bRecurse, NULL, _T(""), &tmpPackingInfo);
 }
 
 /** 
@@ -614,7 +614,7 @@ static UINT UpdateButtonStatesThread(LPVOID lpParam)
 		BOOL bProject = FALSE;
 		String ext;
 		paths::SplitFilename(paths[0], NULL, NULL, &ext);
-		if (paths[1].empty() && string_compare_nocase(ext, ProjectFile::PROJECTFILE_EXT) == 0)
+		if (paths[1].empty() && strutils::compare_nocase(ext, ProjectFile::PROJECTFILE_EXT) == 0)
 			bProject = TRUE;
 
 		if (!bProject)
@@ -746,8 +746,10 @@ void COpenView::OnSelchangeCombo(int index)
 	int sel = m_ctlPath[index].GetCurSel();
 	if (sel != CB_ERR)
 	{
-		m_ctlPath[index].GetLBText(sel, PopString(m_strPath[index]));
-		m_ctlPath[index].SetWindowText(m_strPath[index].c_str());
+		CString cstrPath;
+		m_ctlPath[index].GetLBText(sel, cstrPath);
+		m_strPath[index] = cstrPath;
+		m_ctlPath[index].SetWindowText(cstrPath);
 		UpdateData(TRUE);
 	}
 	UpdateButtonStates();
@@ -881,7 +883,7 @@ void COpenView::OnSelectFilter()
 
 	const BOOL bUseMask = theApp.m_pGlobalFileFilter->IsUsingMask();
 	GetDlgItemText(IDC_EXT_COMBO, curFilter);
-	curFilter = string_trim_ws(curFilter);
+	curFilter = strutils::trim_ws(curFilter);
 
 	GetMainFrame()->SelectFilter();
 	
@@ -938,7 +940,7 @@ BOOL COpenView::LoadProjectFile(const String &path)
 	}
 	if (prj.HasFilter())
 	{
-		m_strExt = string_trim_ws(prj.GetFilter());
+		m_strExt = strutils::trim_ws(prj.GetFilter());
 		if (m_strExt[0] != '*')
 			m_strExt.insert(0, filterPrefix);
 	}
@@ -952,7 +954,7 @@ BOOL COpenView::LoadProjectFile(const String &path)
 void COpenView::TrimPaths()
 {
 	for (int index = 0; index < countof(m_strPath); index++)
-		m_strPath[index] = string_trim_ws(m_strPath[index]);
+		m_strPath[index] = strutils::trim_ws(m_strPath[index]);
 }
 
 /** 

@@ -6,8 +6,7 @@
 // ID line follows -- this is updated by SVN
 // $Id$
 
-#ifndef _SYNTAX_COLORS_H_
-#define _SYNTAX_COLORS_H_
+#pragma once
 
 #include <Windows.h>
 #include <vector>
@@ -44,6 +43,11 @@ enum COLORINDEX
 	//
 	COLORINDEX_USER1,
     COLORINDEX_USER2,
+    //
+    COLORINDEX_MARKERBKGND0,
+    COLORINDEX_MARKERBKGND1,
+    COLORINDEX_MARKERBKGND2,
+    COLORINDEX_MARKERBKGND3,
     //  ...
     //  Expandable: custom elements are allowed.
 	COLORINDEX_LAST, // Please keep this as last item (not counting masks or
@@ -83,5 +87,3 @@ private:
 	std::vector<COLORREF> m_colors; /**< Syntax highlight colors */
 	std::vector<bool> m_bolds; /**< Bold font enable/disable */
 };
-
-#endif // _SYNTAX_COLORS_H_

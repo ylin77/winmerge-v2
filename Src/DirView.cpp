@@ -166,14 +166,20 @@ BEGIN_MESSAGE_MAP(CDirView, CListView)
 	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_LEFT, OnUpdateCtxtDirOpen<SIDE_LEFT>)
 	ON_COMMAND(ID_DIR_OPEN_LEFT_WITH, OnCtxtDirOpenWith<SIDE_LEFT>)
 	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_LEFT_WITH, OnUpdateCtxtDirOpenWith<SIDE_LEFT>)
+	ON_COMMAND(ID_DIR_OPEN_LEFT_PARENT_FOLDER, OnCtxtDirOpenParentFolder<SIDE_LEFT>)
+	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_LEFT_PARENT_FOLDER, OnUpdateCtxtDirOpenParentFolder<SIDE_LEFT>)
 	ON_COMMAND(ID_DIR_OPEN_MIDDLE, OnCtxtDirOpen<SIDE_MIDDLE>)
 	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_MIDDLE, OnUpdateCtxtDirOpen<SIDE_MIDDLE>)
 	ON_COMMAND(ID_DIR_OPEN_MIDDLE_WITH, OnCtxtDirOpenWith<SIDE_MIDDLE>)
 	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_MIDDLE_WITH, OnUpdateCtxtDirOpenWith<SIDE_MIDDLE>)
+	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_MIDDLE_PARENT_FOLDER, OnUpdateCtxtDirOpenParentFolder<SIDE_MIDDLE>)
+	ON_COMMAND(ID_DIR_OPEN_MIDDLE_PARENT_FOLDER, OnCtxtDirOpenParentFolder<SIDE_MIDDLE>)
 	ON_COMMAND(ID_DIR_OPEN_RIGHT, OnCtxtDirOpen<SIDE_RIGHT>)
 	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_RIGHT, OnUpdateCtxtDirOpen<SIDE_RIGHT>)
 	ON_COMMAND(ID_DIR_OPEN_RIGHT_WITH, OnCtxtDirOpenWith<SIDE_RIGHT>)
 	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_RIGHT_WITH, OnUpdateCtxtDirOpenWith<SIDE_RIGHT>)
+	ON_COMMAND(ID_DIR_OPEN_RIGHT_PARENT_FOLDER, OnCtxtDirOpenParentFolder<SIDE_RIGHT>)
+	ON_UPDATE_COMMAND_UI(ID_DIR_OPEN_RIGHT_PARENT_FOLDER, OnUpdateCtxtDirOpenParentFolder<SIDE_RIGHT>)
 	ON_COMMAND(ID_POPUP_OPEN_WITH_UNPACKER, OnCtxtOpenWithUnpacker)
 	ON_UPDATE_COMMAND_UI(ID_POPUP_OPEN_WITH_UNPACKER, OnUpdateCtxtOpenWithUnpacker)
 	ON_COMMAND(ID_DIR_OPEN_LEFT_WITHEDITOR, OnCtxtDirOpenWithEditor<SIDE_LEFT>)
@@ -305,6 +311,9 @@ BEGIN_MESSAGE_MAP(CDirView, CListView)
 	ON_COMMAND(ID_OPTIONS_SHOWUNIQUERIGHT, OnOptionsShowUniqueRight)
 	ON_COMMAND(ID_OPTIONS_SHOWBINARIES, OnOptionsShowBinaries)
 	ON_COMMAND(ID_OPTIONS_SHOWSKIPPED, OnOptionsShowSkipped)
+	ON_COMMAND(ID_OPTIONS_SHOWDIFFERENTLEFTONLY, OnOptionsShowDifferentLeftOnly)
+	ON_COMMAND(ID_OPTIONS_SHOWDIFFERENTMIDDLEONLY, OnOptionsShowDifferentMiddleOnly)
+	ON_COMMAND(ID_OPTIONS_SHOWDIFFERENTRIGHTONLY, OnOptionsShowDifferentRightOnly)
 	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWDIFFERENT, OnUpdateOptionsShowdifferent)
 	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWIDENTICAL, OnUpdateOptionsShowidentical)
 	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWUNIQUELEFT, OnUpdateOptionsShowuniqueleft)
@@ -312,6 +321,9 @@ BEGIN_MESSAGE_MAP(CDirView, CListView)
 	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWUNIQUERIGHT, OnUpdateOptionsShowuniqueright)
 	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWBINARIES, OnUpdateOptionsShowBinaries)
 	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWSKIPPED, OnUpdateOptionsShowSkipped)
+	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWDIFFERENTLEFTONLY, OnUpdateOptionsShowDifferentLeftOnly)
+	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWDIFFERENTMIDDLEONLY, OnUpdateOptionsShowDifferentMiddleOnly)
+	ON_UPDATE_COMMAND_UI(ID_OPTIONS_SHOWDIFFERENTRIGHTONLY, OnUpdateOptionsShowDifferentRightOnly)
 	ON_COMMAND(ID_FILE_ENCODING, OnFileEncoding)
 	ON_UPDATE_COMMAND_UI(ID_FILE_ENCODING, OnUpdateFileEncoding)
 	ON_COMMAND(ID_HELP, OnHelp)
@@ -374,7 +386,7 @@ void CDirView::OnInitialUpdate()
 #endif
 
 	// Load user-selected font
-	if (GetOptionsMgr()->GetBool(String(OPT_FONT_DIRCMP) + OPT_FONT_USECUSTOM))
+	if (GetOptionsMgr()->GetBool(OPT_FONT_DIRCMP + OPT_FONT_USECUSTOM))
 	{
 		m_font.CreateFontIndirect(&GetMainFrame()->m_lfDir);
 		CWnd::SetFont(&m_font, TRUE);
@@ -505,7 +517,7 @@ void CDirView::RedisplayChildren(uintptr_t diffpos, int level, UINT &index, int 
 		uintptr_t curdiffpos = diffpos;
 		const DIFFITEM &di = ctxt.GetNextSiblingDiffPosition(diffpos);
 
-		if (di.diffcode.isResultDiff() || (!di.diffcode.existAll(pDoc->m_nDirs) && !di.diffcode.isResultFiltered()))
+		if (di.diffcode.isResultDiff() || (!di.diffcode.existAll() && !di.diffcode.isResultFiltered()))
 			++alldiffs;
 
 		bool bShowable = IsShowable(ctxt, di, m_dirfilter);
@@ -524,7 +536,7 @@ void CDirView::RedisplayChildren(uintptr_t diffpos, int level, UINT &index, int 
 			}
 			else
 			{
-				if (!ctxt.m_bRecursive || !di.diffcode.isDirectory() || !di.diffcode.existAll(pDoc->m_nDirs))
+				if (!ctxt.m_bRecursive || !di.diffcode.isDirectory() || !di.diffcode.existAll())
 				{
 					AddNewItem(index, curdiffpos, I_IMAGECALLBACK, 0);
 					index++;
@@ -1245,6 +1257,32 @@ void CDirView::OpenSpecialItems(uintptr_t pos1, uintptr_t pos2, uintptr_t pos3)
 }
 
 /**
+ * @brief Creates a pairing folder for unique folder item.
+ * This function creates a pairing folder for unique folder item in
+ * folder compare. This way user can browse into unique folder's
+ * contents and don't necessarily need to copy whole folder structure.
+ * @return true if user agreed and folder was created.
+ */
+static bool CreateFoldersPair(const PathContext& paths)
+{
+	bool created = false;
+	for (const auto& path : paths)
+	{
+		if (!paths::DoesPathExist(path))
+		{
+			String message =
+				strutils::format_string1( 
+					_("The folder exists only in other side and cannot be opened.\n\nDo you want to create a matching folder:\n%1\nto the other side and open these folders?"),
+					path);
+			int res = AfxMessageBox(message.c_str(), MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN);
+			if (res == IDYES)
+				created = paths::CreateIfNeeded(path);
+		}
+	}
+	return created;
+}
+
+/**
  * @brief Open selected files or directories.
  *
  * Opens selected files to file compare. If comparing
@@ -1302,10 +1340,13 @@ void CDirView::OpenSelection(SELECTIONTYPE selectionType /*= SELECTIONTYPE_NORMA
 		success = GetOpenThreeItems(ctxt, pos1, pos2, pos3, pdi,
 				paths, sel1, sel2, sel3, isdir, nPane, errmsg);
 	else
+	{
 		// Only one item selected, so perform diff on its sides
 		success = GetOpenOneItem(ctxt, pos1, pdi, 
 				paths, sel1, isdir, nPane, errmsg);
-		if (!success)
+		if (isdir)
+			CreateFoldersPair(paths);
+	}
 	if (!success)
 	{
 		if (!errmsg.empty())
@@ -1423,9 +1464,11 @@ void CDirView::OpenSelectionHex()
 		success = GetOpenTwoItems(ctxt, SELECTIONTYPE_NORMAL, pos1, pos2, pdi,
 				paths, sel1, sel2, isdir, nPane, errmsg);
 	else
+	{
 		// Only one item selected, so perform diff on its sides
 		success = GetOpenOneItem(ctxt, pos1, pdi,
 				paths, sel1, isdir, nPane, errmsg);
+	}
 	if (!success)
 	{
 		if (!errmsg.empty())
@@ -1620,7 +1663,8 @@ void CDirView::DoOpen(SIDE_TYPE stype)
 {
 	int sel = GetSingleSelectedItem();
 	if (sel == -1) return;
-	String file = GetSelectedFileName(SelBegin(), stype, GetDiffContext());
+	DirItemIterator dirBegin = SelBegin();
+	String file = GetSelectedFileName(dirBegin, stype, GetDiffContext());
 	if (file.empty()) return;
 	HINSTANCE rtn = ShellExecute(::GetDesktopWindow(), _T("edit"), file.c_str(), 0, 0, SW_SHOWNORMAL);
 	if (reinterpret_cast<uintptr_t>(rtn) == SE_ERR_NOASSOC)
@@ -1634,7 +1678,8 @@ void CDirView::DoOpenWith(SIDE_TYPE stype)
 {
 	int sel = GetSingleSelectedItem();
 	if (sel == -1) return;
-	String file = GetSelectedFileName(SelBegin(), stype, GetDiffContext());
+	DirItemIterator dirBegin = SelBegin();
+	String file = GetSelectedFileName(dirBegin, stype, GetDiffContext());
 	if (file.empty()) return;
 	CString sysdir;
 	if (!GetSystemDirectory(sysdir.GetBuffer(MAX_PATH), MAX_PATH)) return;
@@ -1648,10 +1693,22 @@ void CDirView::DoOpenWithEditor(SIDE_TYPE stype)
 {
 	int sel = GetSingleSelectedItem();
 	if (sel == -1) return;
-	String file = GetSelectedFileName(SelBegin(), stype, GetDiffContext());
+	DirItemIterator dirBegin = SelBegin();
+	String file = GetSelectedFileName(dirBegin, stype, GetDiffContext());
 	if (file.empty()) return;
 
 	theApp.OpenFileToExternalEditor(file);
+}
+
+void CDirView::DoOpenParentFolder(SIDE_TYPE stype)
+{
+	int sel = GetSingleSelectedItem();
+	if (sel == -1) return;
+	DirItemIterator dirBegin = SelBegin();
+	String file = GetSelectedFileName(dirBegin, stype, GetDiffContext());
+	if (file.empty()) return;
+	String parentFolder = paths::GetParentPath(file);
+	ShellExecute(::GetDesktopWindow(), _T("open"), parentFolder.c_str(), 0, 0, SW_SHOWNORMAL);
 }
 
 /// User chose (context menu) open left
@@ -1673,6 +1730,13 @@ template<SIDE_TYPE stype>
 void CDirView::OnCtxtDirOpenWithEditor()
 {
 	DoOpenWithEditor(stype);
+}
+
+/// User chose (context menu) open left parent folder
+template<SIDE_TYPE stype>
+void CDirView::OnCtxtDirOpenParentFolder()
+{
+	DoOpenParentFolder(stype);
 }
 
 /// Update context menuitem "Open left | with editor"
@@ -1706,6 +1770,14 @@ template<SIDE_TYPE stype>
 void CDirView::OnUpdateCtxtDirOpenWith(CCmdUI* pCmdUI)
 {
 	Counts counts = Count(&DirActions::IsItemOpenableOnWith<stype>);
+	pCmdUI->Enable(counts.count > 0 && counts.total == 1);
+}
+
+// Enable/disable Open Parent Folder menu choice on context menu
+template<SIDE_TYPE stype>
+void CDirView::OnUpdateCtxtDirOpenParentFolder(CCmdUI* pCmdUI)
+{
+	Counts counts = Count(&DirActions::IsParentFolderOpenable<stype>);
 	pCmdUI->Enable(counts.count > 0 && counts.total == 1);
 }
 
@@ -1801,9 +1873,25 @@ void CDirView::OnUpdateLastdiff(CCmdUI* pCmdUI)
 	pCmdUI->Enable(GetFirstDifferentItem() > -1);
 }
 
-// Go to next diff
-// If none or one item selected select found item
-void CDirView::OnNextdiff()
+bool CDirView::HasNextDiff()
+{
+	int lastDiff = GetLastDifferentItem();
+
+	// Check if different files were found and
+	// there is different item after focused item
+	return (lastDiff > -1) && (GetFocusedItem() < lastDiff);
+}
+
+bool CDirView::HasPrevDiff()
+{
+	int firstDiff = GetFirstDifferentItem();
+
+	// Check if different files were found and
+	// there is different item before focused item
+	return (firstDiff > -1) && (firstDiff < GetFocusedItem());
+}
+
+void CDirView::MoveToNextDiff()
 {
 	int currentInd = GetFocusedItem();
 	DirItemIterator begin(m_pIList.get(), currentInd + 1);
@@ -1813,22 +1901,11 @@ void CDirView::OnNextdiff()
 		MoveFocus(currentInd, it.m_sel, GetSelectedCount());
 }
 
-
-void CDirView::OnUpdateNextdiff(CCmdUI* pCmdUI)
-{
-	int focused = GetFocusedItem();
-	int lastDiff = GetLastDifferentItem();
-
-	// Check if different files were found and
-	// there is different item after focused item
-	pCmdUI->Enable((lastDiff > -1) && (focused < lastDiff));
-}
-
-// Go to prev diff
-// If none or one item selected select found item
-void CDirView::OnPrevdiff()
+void CDirView::MoveToPrevDiff()
 {
 	int currentInd = GetFocusedItem();
+	if (currentInd <= 0)
+		return;
 	DirItemIterator begin(m_pIList.get(), currentInd - 1, false, true);
 	DirItemIterator it =
 		std::find_if(begin, RevEnd(), MakeDirActions(&DirActions::IsItemNavigableDiff));
@@ -1836,15 +1913,60 @@ void CDirView::OnPrevdiff()
 		MoveFocus(currentInd, it.m_sel, GetSelectedCount());
 }
 
+void CDirView::OpenNextDiff()
+{
+	MoveToNextDiff();
+	int currentInd = GetFocusedItem();
+	const DIFFITEM& dip = GetDiffItem(currentInd);
+	if (!dip.diffcode.isDirectory())
+	{
+		OpenSelection();
+	}
+	else
+	{
+		GetParentFrame()->ActivateFrame();
+	}
+}
+
+void CDirView::OpenPrevDiff()
+{
+	MoveToPrevDiff();
+	int currentInd = GetFocusedItem();
+	const DIFFITEM& dip = GetDiffItem(currentInd);
+	if (!dip.diffcode.isDirectory())
+	{
+		OpenSelection();
+	}
+	else
+	{
+		GetParentFrame()->ActivateFrame();
+	}
+}
+
+// Go to next diff
+// If none or one item selected select found item
+void CDirView::OnNextdiff()
+{
+	MoveToNextDiff();
+}
+
+
+void CDirView::OnUpdateNextdiff(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(HasNextDiff());
+}
+
+// Go to prev diff
+// If none or one item selected select found item
+void CDirView::OnPrevdiff()
+{
+	MoveToPrevDiff();
+}
+
 
 void CDirView::OnUpdatePrevdiff(CCmdUI* pCmdUI)
 {
-	int focused = GetFocusedItem();
-	int firstDiff = GetFirstDifferentItem();
-
-	// Check if different files were found and
-	// there is different item before focused item
-	pCmdUI->Enable((firstDiff > -1) && (firstDiff < focused));
+	pCmdUI->Enable(HasPrevDiff());
 }
 
 void CDirView::OnCurdiff()
@@ -2094,8 +2216,8 @@ LRESULT CDirView::OnUpdateUIMessage(WPARAM wParam, LPARAM lParam)
 
 		// If compare took more than TimeToSignalCompare seconds, notify user
 		clock_t elapsed = clock() - m_compareStart;
-		GetParentFrame()->SetMessageText(
-			string_format(_("Elapsed time: %ld ms").c_str(), elapsed).c_str()
+		GetParentFrame()->SetStatus(
+			strutils::format(_("Elapsed time: %ld ms").c_str(), elapsed).c_str()
 		);
 		if (elapsed > TimeToSignalCompare * CLOCKS_PER_SEC)
 			MessageBeep(IDOK);
@@ -2260,7 +2382,7 @@ void CDirView::OnTimer(UINT_PTR nIDEvent)
 	else if (nIDEvent == STATUSBAR_UPDATE)
 	{
 		int items = GetSelectedCount();
-		String msg = (items == 1) ? _("1 item selected") : string_format_string1(_("%1 items selected"), string_to_str(items));
+		String msg = (items == 1) ? _("1 item selected") : strutils::format_string1(_("%1 items selected"), strutils::to_str(items));
 		GetParentFrame()->SetStatus(msg.c_str());
 	}
 	
@@ -2408,7 +2530,7 @@ struct FileCmpReport: public IFileCmpReport
 
 		sLinkPath = di.diffFileInfo[0].GetFile();
 
-		string_replace(sLinkPath, _T("\\"), _T("_"));
+		strutils::replace(sLinkPath, _T("\\"), _T("_"));
 		sLinkPath += _T(".html");
 
 		m_pDirView->MoveFocus(m_pDirView->GetFirstSelectedInd(), nIndex, m_pDirView->GetSelectedCount());
@@ -2444,6 +2566,7 @@ private:
 void CDirView::OnToolsGenerateReport()
 {
 	CDirDoc *pDoc = GetDocument();
+	pDoc->SetGeneratingReport(true);
 	const CDiffContext& ctxt = GetDiffContext();
 
 	// Make list of registry keys for columns
@@ -2478,12 +2601,13 @@ void CDirView::OnToolsGenerateReport()
 		}
 		else
 		{
-			String msg = string_format_string1(
+			String msg = strutils::format_string1(
 				_("Error creating the report:\n%1"),
 				errStr);
 			AfxMessageBox(msg.c_str(), MB_OK | MB_ICONSTOP);
 		}
 	}
+	pDoc->SetGeneratingReport(false);
 }
 
 /**
@@ -2723,14 +2847,14 @@ void CDirView::OnCopyPathnames()
 {
 	std::list<String> list;
 	CopyPathnames(SelBegin(), SelEnd(), std::back_inserter(list), stype, GetDiffContext());
-	PutToClipboard(string_join(list.begin(), list.end(), _T("\r\n")), GetMainFrame()->GetSafeHwnd());
+	PutToClipboard(strutils::join(list.begin(), list.end(), _T("\r\n")), GetMainFrame()->GetSafeHwnd());
 }
 
 void CDirView::OnCopyBothPathnames()
 {
 	std::list<String> list;
 	CopyBothPathnames(SelBegin(), SelEnd(), std::back_inserter(list), GetDiffContext());
-	PutToClipboard(string_join(list.begin(), list.end(), _T("\r\n")), GetMainFrame()->GetSafeHwnd());
+	PutToClipboard(strutils::join(list.begin(), list.end(), _T("\r\n")), GetMainFrame()->GetSafeHwnd());
 }
 
 /**
@@ -2740,7 +2864,7 @@ void CDirView::OnCopyFilenames()
 {
 	std::list<String> list;
 	CopyFilenames(SelBegin(), SelEnd(), std::back_inserter(list));
-	PutToClipboard(string_join(list.begin(), list.end(), _T("\r\n")), GetMainFrame()->GetSafeHwnd());
+	PutToClipboard(strutils::join(list.begin(), list.end(), _T("\r\n")), GetMainFrame()->GetSafeHwnd());
 }
 
 /**
@@ -2876,7 +3000,7 @@ void CDirView::OnItemChanged(NMHDR* pNMHDR, LRESULT* pResult)
 			(pNMListView->uNewState & LVIS_SELECTED))
 	{
 		int items = GetSelectedCount();
-		String msg = (items == 1) ? _("1 item selected") : string_format_string1(_("%1 items selected"), string_to_str(items));
+		String msg = (items == 1) ? _("1 item selected") : strutils::format_string1(_("%1 items selected"), strutils::to_str(items));
 		GetParentFrame()->SetStatus(msg.c_str());
 	}
 	*pResult = 0;
@@ -2946,7 +3070,8 @@ afx_msg void CDirView::OnEndLabelEdit(NMHDR* pNMHDR, LRESULT* pResult)
 		if (!sText.IsEmpty())
 		{
 			try {
-				*pResult = DoItemRename(SelBegin(), GetDiffContext(), String(sText));
+				DirItemIterator dirBegin = SelBegin();
+				*pResult = DoItemRename(dirBegin, GetDiffContext(), String(sText));
 			} catch (ContentsChangedException& e) {
 				AfxMessageBox(e.m_msg.c_str(), MB_ICONWARNING);
 			}
@@ -2983,7 +3108,7 @@ void CDirView::OnUpdateStatusNum(CCmdUI* pCmdUI)
 	{
 		// No item has focus
 		// "Items: %1"
-		s = string_format_string1(_("Items: %1"), string_to_str(count));
+		s = strutils::format_string1(_("Items: %1"), strutils::to_str(count));
 	}
 	else
 	{
@@ -2999,8 +3124,8 @@ void CDirView::OnUpdateStatusNum(CCmdUI* pCmdUI)
 				--count;
 			}
 			// "Item %1 of %2"
-			s = string_format_string2(_("Item %1 of %2"), 
-					string_to_str(focusItem + 1), string_to_str(count));
+			s = strutils::format_string2(_("Item %1 of %2"), 
+					strutils::to_str(focusItem + 1), strutils::to_str(count));
 		}
 	}
 	pCmdUI->SetText(s.c_str());
@@ -3030,6 +3155,7 @@ void CDirView::OnUpdateViewShowHiddenItems(CCmdUI* pCmdUI)
 void CDirView::OnViewTreeMode()
 {
 	m_bTreeMode = !m_bTreeMode;
+	m_dirfilter.tree_mode = m_bTreeMode;
 	GetOptionsMgr()->SaveOption(OPT_TREE_MODE, m_bTreeMode); // reverse
 	Redisplay();
 }
@@ -3039,8 +3165,15 @@ void CDirView::OnViewTreeMode()
  */
 void CDirView::OnUpdateViewTreeMode(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_bTreeMode);
-	pCmdUI->Enable(GetDiffContext().m_bRecursive);
+	// Don't show Tree Mode as 'checked' if the
+	// menu item is greyed out (disabled).  Its very confusing.
+	if( GetDocument()->GetDiffContext().m_bRecursive ) {
+		pCmdUI->SetCheck(m_bTreeMode);
+		pCmdUI->Enable(TRUE);
+	} else {
+		pCmdUI->SetCheck(FALSE);
+		pCmdUI->Enable(FALSE);
+	}
 }
 
 /**
@@ -3153,6 +3286,36 @@ void CDirView::OnOptionsShowSkipped()
 	Redisplay();
 }
 
+/**
+ * @brief Show/Hide different files/folders (Middle and right are identical)
+ */
+void CDirView::OnOptionsShowDifferentLeftOnly() 
+{
+	m_dirfilter.show_different_left_only = !m_dirfilter.show_different_left_only;
+	GetOptionsMgr()->SaveOption(OPT_SHOW_DIFFERENT_LEFT_ONLY, m_dirfilter.show_different_left_only);
+	Redisplay();
+}
+
+/**
+ * @brief Show/Hide different files/folders (Left and right are identical)
+ */
+void CDirView::OnOptionsShowDifferentMiddleOnly() 
+{
+	m_dirfilter.show_different_middle_only = !m_dirfilter.show_different_middle_only;
+	GetOptionsMgr()->SaveOption(OPT_SHOW_DIFFERENT_MIDDLE_ONLY, m_dirfilter.show_different_middle_only);
+	Redisplay();
+}
+
+/**
+ * @brief Show/Hide different files/folders (Left and middle are identical)
+ */
+void CDirView::OnOptionsShowDifferentRightOnly() 
+{
+	m_dirfilter.show_different_right_only = !m_dirfilter.show_different_right_only;
+	GetOptionsMgr()->SaveOption(OPT_SHOW_DIFFERENT_RIGHT_ONLY, m_dirfilter.show_different_right_only);
+	Redisplay();
+}
+
 void CDirView::OnUpdateOptionsShowdifferent(CCmdUI* pCmdUI) 
 {
 	pCmdUI->SetCheck(m_dirfilter.show_different);
@@ -3187,6 +3350,24 @@ void CDirView::OnUpdateOptionsShowBinaries(CCmdUI* pCmdUI)
 void CDirView::OnUpdateOptionsShowSkipped(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_dirfilter.show_skipped);
+}
+
+void CDirView::OnUpdateOptionsShowDifferentLeftOnly(CCmdUI* pCmdUI) 
+{
+	pCmdUI->Enable(GetDocument()->m_nDirs > 2);
+	pCmdUI->SetCheck(m_dirfilter.show_different_left_only);
+}
+
+void CDirView::OnUpdateOptionsShowDifferentMiddleOnly(CCmdUI* pCmdUI) 
+{
+	pCmdUI->Enable(GetDocument()->m_nDirs > 2);
+	pCmdUI->SetCheck(m_dirfilter.show_different_middle_only);
+}
+
+void CDirView::OnUpdateOptionsShowDifferentRightOnly(CCmdUI* pCmdUI) 
+{
+	pCmdUI->Enable(GetDocument()->m_nDirs > 2);
+	pCmdUI->SetCheck(m_dirfilter.show_different_right_only);
 }
 
 void CDirView::OnMergeCompare()
@@ -3580,13 +3761,12 @@ void CDirView::OnBeginDrag(NMHDR* pNMHDR, LRESULT* pResult)
 
 	std::list<String> list;
 	CopyPathnamesForDragAndDrop(SelBegin(), SelEnd(), std::back_inserter(list), GetDiffContext());
-	String filesForDroping = string_join(list.begin(), list.end(), _T("\n"));
+	String filesForDroping = strutils::join(list.begin(), list.end(), _T("\n"));
 
 	CSharedFile file(GMEM_DDESHARE | GMEM_MOVEABLE | GMEM_ZEROINIT);
 	file.Write(filesForDroping.data(), static_cast<unsigned>(filesForDroping.length() * sizeof(TCHAR)));
-	file.Write(_T("\0"), sizeof(TCHAR)); // include terminating zero
 	
-	HGLOBAL hMem = file.Detach();
+	HGLOBAL hMem = GlobalReAlloc(file.Detach(), filesForDroping.length() * sizeof(TCHAR), 0);
 	if (hMem) 
 	{
 #ifdef _UNICODE
@@ -3739,7 +3919,7 @@ void CDirView::ReflectGetdispinfo(NMLVDISPINFO *pParam)
 	}
 	if (pParam->item.mask & LVIF_IMAGE)
 	{
-		pParam->item.iImage = GetColImage(ctxt, di);
+		pParam->item.iImage = GetColImage(di);
 	}
 
 	m_bNeedSearchLastDiffItem = true;

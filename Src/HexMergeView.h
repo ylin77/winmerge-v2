@@ -47,7 +47,6 @@ public:
 	HRESULT LoadFile(LPCTSTR);
 	HRESULT SaveFile(LPCTSTR);
 	IHexEditorWindow *GetInterface() const { return m_pif; }
-	IHexEditorWindow::Status *GetStatus();
 	BYTE *GetBuffer(int);
 	int GetLength();
 	BOOL GetModified();
@@ -101,8 +100,3 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Developer Studio will insert additional declarations immediately before the previous line.

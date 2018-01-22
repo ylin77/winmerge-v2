@@ -84,8 +84,8 @@ static void EscapeControlChars(String &s)
 		// Is it a control character in the range 0..31 except TAB?
 		if (!(c & ~_T('\x1F')) && c != _T('\t'))
 		{
-			// Bitwise OR with 0x100 so _itot() will output 3 hex digits
-			_itot(0x100 | c, p + n - 4, 16);
+			// Bitwise OR with 0x100 so _itot_s() will output 3 hex digits
+			_itot_s(0x100 | c, p + n - 4, 4, 16);
 			// Replace terminating zero with leadout character
 			p[n - 1] = _T('\\');
 			// Prepare to replace 1st hex digit with leadin character
@@ -150,7 +150,7 @@ bool CDiffTextBuffer::GetLine(int nLineIndex, CString &strLine) const
 		strLine.Empty();
 	else
 	{
-		_tcsncpy(strLine.GetBuffer(nLineLength + 1),
+		_tcsncpy_s(strLine.GetBuffer(nLineLength + 1), nLineLength + 1,
 			CCrystalTextBuffer::GetLineChars(nLineIndex), nLineLength);
 		strLine.ReleaseBuffer(nLineLength);
 	}
@@ -190,7 +190,7 @@ bool CDiffTextBuffer::GetFullLine(int nLineIndex, CString &strLine) const
 }
 
 void CDiffTextBuffer::AddUndoRecord(bool bInsert, const CPoint & ptStartPos,
-		const CPoint & ptEndPos, LPCTSTR pszText, int cchText,
+		const CPoint & ptEndPos, LPCTSTR pszText, size_t cchText,
 		int nActionType /*= CE_ACTION_UNKNOWN*/,
 		CDWordArray *paSavedRevisionNumbers)
 {
@@ -293,7 +293,7 @@ int CDiffTextBuffer::LoadFromFile(LPCTSTR pszFileNameInit,
 
 	// Unpacking the file here, save the result in a temporary file
 	String sFileName(pszFileNameInit);
-	if (!FileTransform_Unpacking(infoUnpacker, sFileName, sToFindUnpacker))
+	if (!FileTransform::Unpacking(infoUnpacker, sFileName, sToFindUnpacker))
 	{
 		InitNew(); // leave crystal editor in valid, empty state
 		return FileLoadResult::FRESULT_ERROR_UNPACK;
@@ -530,10 +530,10 @@ int CDiffTextBuffer::SaveToFile (const String& pszFileName,
 		{
 			sError = uniErr.GetError();
 			if (bTempFile)
-				LogErrorString(string_format(_T("Opening file %s failed: %s"),
+				LogErrorString(strutils::format(_T("Opening file %s failed: %s"),
 					pszFileName.c_str(), sError.c_str()));
 			else
-				LogErrorString(string_format(_T("Opening file %s failed: %s"),
+				LogErrorString(strutils::format(_T("Opening file %s failed: %s"),
 					sIntermediateFilename.c_str(), sError.c_str()));
 		}
 		return SAVE_FAILED;
@@ -598,7 +598,7 @@ int CDiffTextBuffer::SaveToFile (const String& pszFileName,
 		// repack the file here, overwrite the temporary file we did save in
 		String csTempFileName = sIntermediateFilename;
 		infoUnpacker->subcode = m_unpackerSubcode;
-		if (!FileTransform_Packing(csTempFileName, *infoUnpacker))
+		if (!FileTransform::Packing(csTempFileName, *infoUnpacker))
 		{
 			try
 			{
@@ -628,9 +628,9 @@ int CDiffTextBuffer::SaveToFile (const String& pszFileName,
 		// Write tempfile over original file
 		try
 		{
-			TFile file(sIntermediateFilename);
-			file.copyTo(pszFileName);
-			file.remove();
+			TFile file1(sIntermediateFilename);
+			file1.copyTo(pszFileName);
+			file1.remove();
 			if (bClearModifiedFlag)
 			{
 				SetModified(false);

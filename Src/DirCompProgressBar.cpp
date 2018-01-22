@@ -61,7 +61,6 @@ BEGIN_MESSAGE_MAP(DirCompProgressBar, CDialogBar)
 	//{{AFX_MSG_MAP(DirCompProgressBar)
 	ON_WM_WINDOWPOSCHANGING()
 	ON_WM_TIMER()
-	ON_WM_SIZE()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -103,6 +102,7 @@ void DirCompProgressBar::SetProgressState(int comparedItems, int totalItems)
 	SetDlgItemInt(IDC_ITEMSTOTAL, totalItems);
 	SetDlgItemInt(IDC_ITEMSCOMPARED, comparedItems);
 	pProg->SetPos(comparedItems);
+	pProg->SetRange32(0, totalItems);
 
 #ifdef __ITaskbarList3_INTERFACE_DEFINED__
 	if (m_pTaskbarList)
@@ -164,32 +164,6 @@ void DirCompProgressBar::OnTimer(UINT_PTR nIDEvent)
 	}
 	else
 		CDialogBar::OnTimer(nIDEvent);
-}
-
-void DirCompProgressBar::OnSize(UINT nType, int cx, int cy)
-{
-	CDialogBar::OnSize(nType, cx, cy);
-
-	CWnd *pwndButton = GetDlgItem(IDC_COMPARISON_STOP);
-	CWnd *pwndProgress = GetDlgItem(IDC_PROGRESSCOMPARE);
-	CWnd *pwndStatic = GetDlgItem(IDC_PATH_COMPARING);
-
-	if (pwndButton && pwndProgress && pwndStatic)
-	{
-		CRect rectButton, rectProgress, rectStatic;
-		pwndButton->GetWindowRect(&rectButton);
-		pwndProgress->GetWindowRect(&rectProgress);
-		pwndStatic->GetWindowRect(&rectStatic);
-		ScreenToClient(&rectButton);
-		ScreenToClient(&rectProgress);
-		ScreenToClient(&rectStatic);
-		rectButton.left = cx - rectButton.Width() - rectProgress.left;
-		rectProgress.right = cx - rectProgress.left;
-		rectStatic.right = rectProgress.right;
-		pwndButton->SetWindowPos(NULL, rectButton.left, rectButton.top, 0, 0, SWP_NOZORDER|SWP_NOSIZE);
-		pwndProgress->SetWindowPos(NULL, 0, 0, rectProgress.Width(), rectProgress.Height(), SWP_NOZORDER|SWP_NOMOVE);
-		pwndStatic->SetWindowPos(NULL, 0, 0, rectStatic.Width(), rectStatic.Height(), SWP_NOZORDER|SWP_NOMOVE);
-	}
 }
 
 /**

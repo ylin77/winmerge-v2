@@ -141,10 +141,10 @@ int information(const String& msg, int type)
 AboutInfo::AboutInfo()
 {
 	CVersionInfo verinfo;
-	version = string_format_string1(_("Version %1"), verinfo.GetProductVersion());
+	version = strutils::format_string1(_("Version %1"), verinfo.GetProductVersion());
 	if (version.find(_T(" - ")) != String::npos)
 	{
-		string_replace(version, _T(" - "), _T("\n"));
+		strutils::replace(version, _T(" - "), _T("\n"));
 		version += _T(" ");
 	}
 	else
@@ -157,7 +157,8 @@ AboutInfo::AboutInfo()
 #endif
 
 #if defined _M_IX86
-	version += _T(" x86");
+	version += _T(" ");
+	version += _("x86");
 #elif defined _M_IA64
 	version += _T(" IA64");
 #elif defined _M_X64
@@ -165,19 +166,25 @@ AboutInfo::AboutInfo()
 	version += _("X64");
 #endif
 
+#if defined _DEBUG
+	version += _T(" (");
+	version += _("Debug");
+	version += _T(")");
+#endif
+
 	copyright = _("WinMerge comes with ABSOLUTELY NO WARRANTY. This is free software and you are welcome to redistribute it under certain circumstances; see the GNU General Public License in the Help menu for details.");
 	copyright += _T("\n");
 	copyright += verinfo.GetLegalCopyright();
-	copyright += _T(" All rights reserved.");
+	copyright += _T(" - All rights reserved.");
 
 	private_build = verinfo.GetPrivateBuild();
 	if (!private_build.empty())
 	{
-		private_build = string_format_string1(_("Private Build: %1"), private_build);
+		private_build = strutils::format_string1(_("Private Build: %1"), private_build);
 	}
 
 	website = WinMergeURL;
 
 	developers = _("Developers:\nDean Grimm, Christian List, Kimmo Varis, Jochen Tucht, Tim Gerundt, Takashi Sawanaki, Gal Hammer, Alexander Skinner");
-	string_replace(developers, _T(", "), _T("\n"));
+	strutils::replace(developers, _T(", "), _T("\n"));
 }

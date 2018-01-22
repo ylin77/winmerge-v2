@@ -35,6 +35,9 @@
 
 using Poco::Exception;
 
+namespace FileTransform
+{
+
 int g_bUnpackerMode = PLUGIN_MANUAL;
 int g_bPredifferMode = PLUGIN_MANUAL;
 
@@ -46,7 +49,7 @@ int g_bPredifferMode = PLUGIN_MANUAL;
 // transformations : packing unpacking
 
 // known handler
-bool FileTransform_Packing(String & filepath, PackingInfo handler)
+bool Packing(String & filepath, PackingInfo handler)
 {
 	// no handler : return true
 	if (handler.pluginName.empty())
@@ -69,7 +72,7 @@ bool FileTransform_Packing(String & filepath, PackingInfo handler)
 		// use a temporary dest name
 		String srcFileName = bufferData.GetDataFileAnsi(); // <-Call order is important
 		String dstFileName = bufferData.GetDestFileName(); // <-Call order is important
-		bHandled = InvokePackFile(srcFileName,
+		bHandled = plugin::InvokePackFile(srcFileName,
 			dstFileName,
 			bufferData.GetNChanged(),
 			piScript, handler.subcode);
@@ -78,7 +81,7 @@ bool FileTransform_Packing(String & filepath, PackingInfo handler)
 	}
 	else
 	{
-		bHandled = InvokePackBuffer(*bufferData.GetDataBufferAnsi(),
+		bHandled = plugin::InvokePackBuffer(*bufferData.GetDataBufferAnsi(),
 			bufferData.GetNChanged(),
 			piScript, handler.subcode);
 		if (bHandled)
@@ -100,7 +103,7 @@ bool FileTransform_Packing(String & filepath, PackingInfo handler)
 }
 
 // known handler
-bool FileTransform_Unpacking(String & filepath, const PackingInfo * handler, int * handlerSubcode)
+bool Unpacking(String & filepath, const PackingInfo * handler, int * handlerSubcode)
 {
 	// no handler : return true
 	if (!handler || handler->pluginName.empty())
@@ -129,7 +132,7 @@ bool FileTransform_Unpacking(String & filepath, const PackingInfo * handler, int
 		// use a temporary dest name
 		String srcFileName = bufferData.GetDataFileAnsi(); // <-Call order is important
 		String dstFileName = bufferData.GetDestFileName(); // <-Call order is important
-		bHandled = InvokeUnpackFile(srcFileName,
+		bHandled = plugin::InvokeUnpackFile(srcFileName,
 			dstFileName,
 			bufferData.GetNChanged(),
 			piScript, subcode);
@@ -138,7 +141,7 @@ bool FileTransform_Unpacking(String & filepath, const PackingInfo * handler, int
 	}
 	else
 	{
-		bHandled = InvokeUnpackBuffer(*bufferData.GetDataBufferAnsi(),
+		bHandled = plugin::InvokeUnpackBuffer(*bufferData.GetDataBufferAnsi(),
 			bufferData.GetNChanged(),
 			piScript, subcode);
 		if (bHandled)
@@ -164,7 +167,7 @@ bool FileTransform_Unpacking(String & filepath, const PackingInfo * handler, int
 
 
 // scan plugins for the first handler
-bool FileTransform_Unpacking(String & filepath, const String& filteredText, PackingInfo * handler, int * handlerSubcode)
+bool Unpacking(String & filepath, const String& filteredText, PackingInfo * handler, int * handlerSubcode)
 {
 	// PLUGIN_BUILTIN_XML : read source file through custom UniFile
 	if (handler->bToBeScanned == PLUGIN_BUILTIN_XML)
@@ -194,7 +197,7 @@ bool FileTransform_Unpacking(String & filepath, const String& filteredText, Pack
 		// use a temporary dest name
 		String srcFileName = bufferData.GetDataFileAnsi(); // <-Call order is important
 		String dstFileName = bufferData.GetDestFileName(); // <-Call order is important
-		bHandled = InvokeUnpackFile(srcFileName,
+		bHandled = plugin::InvokeUnpackFile(srcFileName,
 			dstFileName,
 			bufferData.GetNChanged(),
 			plugin->m_lpDispatch, handler->subcode);
@@ -212,7 +215,7 @@ bool FileTransform_Unpacking(String & filepath, const String& filteredText, Pack
 		{
 			handler->pluginName = plugin->m_name;
 			handler->bWithFile = false;
-			bHandled = InvokeUnpackBuffer(*bufferData.GetDataBufferAnsi(),
+			bHandled = plugin::InvokeUnpackBuffer(*bufferData.GetDataBufferAnsi(),
 				bufferData.GetNChanged(),
 				plugin->m_lpDispatch, handler->subcode);
 			if (bHandled)
@@ -244,19 +247,19 @@ bool FileTransform_Unpacking(String & filepath, const String& filteredText, Pack
 	return bSuccess;
 }
 
-bool FileTransform_Unpacking(PackingInfo *handler, String& filepath, const String& filteredText)
+bool Unpacking(PackingInfo *handler, String& filepath, const String& filteredText)
 {
 	if (handler->bToBeScanned)
-		return FileTransform_Unpacking(filepath, filteredText, handler, &handler->subcode);
+		return Unpacking(filepath, filteredText, handler, &handler->subcode);
 	else
-		return FileTransform_Unpacking(filepath, handler, &handler->subcode);
+		return Unpacking(filepath, handler, &handler->subcode);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // transformation prediffing
     
 // known handler
-bool FileTransform_Prediffing(String & filepath, PrediffingInfo handler, bool bMayOverwrite)
+bool Prediffing(String & filepath, PrediffingInfo handler, bool bMayOverwrite)
 {
 	// no handler : return true
 	if (handler.pluginName.empty())
@@ -284,7 +287,7 @@ bool FileTransform_Prediffing(String & filepath, PrediffingInfo handler, bool bM
 		// use a temporary dest name
 		String srcFileName = bufferData.GetDataFileAnsi(); // <-Call order is important
 		String dstFileName = bufferData.GetDestFileName(); // <-Call order is important
-		bHandled = InvokePrediffFile(srcFileName,
+		bHandled = plugin::InvokePrediffFile(srcFileName,
 			dstFileName,
 			bufferData.GetNChanged(),
 			piScript);
@@ -294,7 +297,7 @@ bool FileTransform_Prediffing(String & filepath, PrediffingInfo handler, bool bM
 	else
 	{
 		// probably it is for VB/VBscript so use a BSTR as argument
-		bHandled = InvokePrediffBuffer(*bufferData.GetDataBufferUnicode(),
+		bHandled = plugin::InvokePrediffBuffer(*bufferData.GetDataBufferUnicode(),
 			bufferData.GetNChanged(),
 			piScript);
 		if (bHandled)
@@ -318,7 +321,7 @@ bool FileTransform_Prediffing(String & filepath, PrediffingInfo handler, bool bM
 
 
 // scan plugins for the first handler
-bool FileTransform_Prediffing(String & filepath, const String& filteredText, PrediffingInfo * handler, bool bMayOverwrite)
+bool Prediffing(String & filepath, const String& filteredText, PrediffingInfo * handler, bool bMayOverwrite)
 {
 	storageForPlugins bufferData;
 	// detect Ansi or Unicode file
@@ -337,7 +340,7 @@ bool FileTransform_Prediffing(String & filepath, const String& filteredText, Pre
 		// use a temporary dest name
 		String srcFileName = bufferData.GetDataFileAnsi(); // <-Call order is important
 		String dstFileName = bufferData.GetDestFileName(); // <-Call order is important
-		bHandled = InvokePrediffFile(srcFileName,
+		bHandled = plugin::InvokePrediffFile(srcFileName,
 			dstFileName,
 			bufferData.GetNChanged(),
 			plugin->m_lpDispatch);
@@ -353,7 +356,7 @@ bool FileTransform_Prediffing(String & filepath, const String& filteredText, Pre
 			handler->pluginName = plugin->m_name;
 			handler->bWithFile = false;
 			// probably it is for VB/VBscript so use a BSTR as argument
-			bHandled = InvokePrediffBuffer(*bufferData.GetDataBufferUnicode(),
+			bHandled = plugin::InvokePrediffBuffer(*bufferData.GetDataBufferUnicode(),
 				bufferData.GetNChanged(),
 				plugin->m_lpDispatch);
 			if (bHandled)
@@ -381,18 +384,18 @@ bool FileTransform_Prediffing(String & filepath, const String& filteredText, Pre
 	return bSuccess;
 }
 
-bool FileTransform_Prediffing(PrediffingInfo * handler, String & filepath, const String& filteredText, bool bMayOverwrite)
+bool Prediffing(PrediffingInfo * handler, String & filepath, const String& filteredText, bool bMayOverwrite)
 {
 	if (handler->bToBeScanned)
-		return FileTransform_Prediffing(filepath, filteredText, handler, bMayOverwrite);
+		return Prediffing(filepath, filteredText, handler, bMayOverwrite);
 	else
-		return FileTransform_Prediffing(filepath, *handler, bMayOverwrite);
+		return Prediffing(filepath, *handler, bMayOverwrite);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool FileTransform_AnyCodepageToUTF8(int codepage, String & filepath, bool bMayOverwrite)
+bool AnyCodepageToUTF8(int codepage, String & filepath, bool bMayOverwrite)
 {
 	String tempDir = env::GetTemporaryPath();
 	if (tempDir.empty())
@@ -402,7 +405,7 @@ bool FileTransform_AnyCodepageToUTF8(int codepage, String & filepath, bool bMayO
 		return false;
 	// TODO : is it better with the BOM or without (just change the last argument)
 	int nFileChanged = 0;
-	bool bSuccess = AnyCodepageToUTF8(codepage, filepath, tempFilepath, nFileChanged, false); 
+	bool bSuccess = ::AnyCodepageToUTF8(codepage, filepath, tempFilepath, nFileChanged, false); 
 	if (bSuccess && nFileChanged)
 	{
 		// we do not overwrite so we delete the old file
@@ -447,7 +450,7 @@ void GetFreeFunctionsInScripts(std::vector<String>& sNamesArray, const wchar_t *
 
 	// fill in these structures
 	int nFnc = 0;	
-	int iScript;
+	size_t iScript;
 	for (iScript = 0 ; iScript < piScriptArray->size() ; iScript++)
 	{
 		const PluginInfoPtr & plugin = piScriptArray->at(iScript);
@@ -456,7 +459,7 @@ void GetFreeFunctionsInScripts(std::vector<String>& sNamesArray, const wchar_t *
 		LPDISPATCH piScript = plugin->m_lpDispatch;
 		std::vector<String> scriptNamesArray;
 		std::vector<int> scriptIdsArray;
-		int nScriptFnc = GetMethodsFromScript(piScript, scriptNamesArray, scriptIdsArray);
+		int nScriptFnc = plugin::GetMethodsFromScript(piScript, scriptNamesArray, scriptIdsArray);
 		sNamesArray.resize(nFnc+nScriptFnc);
 
 		int iFnc;
@@ -467,7 +470,7 @@ void GetFreeFunctionsInScripts(std::vector<String>& sNamesArray, const wchar_t *
 	}
 }
 
-bool TextTransform_Interactive(String & text, const wchar_t *TransformationEvent, int iFncChosen)
+bool Interactive(String & text, const wchar_t *TransformationEvent, int iFncChosen)
 {
 	if (iFncChosen < 0)
 		return false;
@@ -476,7 +479,7 @@ bool TextTransform_Interactive(String & text, const wchar_t *TransformationEvent
 	PluginArray * piScriptArray = 
 		CAllThreadsScripts::GetActiveSet()->GetAvailableScripts(TransformationEvent);
 
-	int iScript;
+	size_t iScript;
 	for (iScript = 0 ; iScript < piScriptArray->size() ; iScript++)
 	{
 		if (iFncChosen < piScriptArray->at(iScript)->m_nFreeFunctions)
@@ -490,13 +493,15 @@ bool TextTransform_Interactive(String & text, const wchar_t *TransformationEvent
 
 	// iFncChosen is the index of the function in the script file
 	// we must convert it to the function ID
-	int fncID = GetMethodIDInScript(piScriptArray->at(iScript)->m_lpDispatch, iFncChosen);
+	int fncID = plugin::GetMethodIDInScript(piScriptArray->at(iScript)->m_lpDispatch, iFncChosen);
 
 	// execute the transform operation
 	int nChanged = 0;
-	InvokeTransformText(text, nChanged, piScriptArray->at(iScript)->m_lpDispatch, fncID);
+	plugin::InvokeTransformText(text, nChanged, piScriptArray->at(iScript)->m_lpDispatch, fncID);
 
 	return (nChanged != 0);
+}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////

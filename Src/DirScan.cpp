@@ -26,7 +26,6 @@
 #include "CompareStats.h"
 #include "FolderCmp.h"
 #include "FileFilterHelper.h"
-#include "codepage.h"
 #include "IAbortable.h"
 #include "FolderCmp.h"
 #include "DirItem.h"
@@ -34,6 +33,8 @@
 #include "paths.h"
 #include "Plugins.h"
 #include "MergeApp.h"
+#include "OptionsDef.h"
+#include "OptionsMgr.h"
 
 using Poco::NotificationQueue;
 using Poco::Notification;
@@ -50,8 +51,8 @@ static void StoreDiffData(DIFFITEM &di, CDiffContext * pCtxt,
 		const FolderCmp * pCmpData);
 static DIFFITEM *AddToList(const String& sLeftDir, const String& sRightDir, const DirItem * lent, const DirItem * rent,
 	unsigned code, DiffFuncStruct *myStruct, DIFFITEM *parent);
-static DIFFITEM *AddToList(const String& sLeftDir, const String& sMiddleDir, const String& sRightDir, const DirItem * lent, const DirItem * ment, const DirItem * rent,
-	unsigned code, DiffFuncStruct *myStruct, DIFFITEM *parent);
+static DIFFITEM *AddToList(const String& sDir1, const String& sDir2, const String& sDir3, const DirItem * ent1, const DirItem * ent2, const DirItem * ent3,
+	unsigned code, DiffFuncStruct *myStruct, DIFFITEM *parent, int nItems = 3);
 static void UpdateDiffItem(DIFFITEM & di, bool & bExists, CDiffContext *pCtxt);
 static int CompareItems(NotificationQueue& queue, DiffFuncStruct *myStruct, uintptr_t parentdiffpos);
 
@@ -451,14 +452,25 @@ int DirScan_GetItems(const PathContext &paths, const String subdir[],
  */
 int DirScan_CompareItems(DiffFuncStruct *myStruct, uintptr_t parentdiffpos)
 {
-	ThreadPool threadPool;
-	std::vector<DiffWorkerPtr> workers;
 	const int compareMethod = myStruct->context->GetCompareMethod();
-	unsigned nworkers = (compareMethod == CMP_CONTENT || compareMethod == CMP_QUICK_CONTENT) ? Environment::processorCount() : 1;
-	NotificationQueue queue;
+	int nworkers = 1;
 
+	if (compareMethod == CMP_CONTENT || compareMethod == CMP_QUICK_CONTENT)
+	{
+		nworkers = GetOptionsMgr()->GetInt(OPT_CMP_COMPARE_THREADS);
+		if (nworkers <= 0)
+		{
+			nworkers += Environment::processorCount();
+			if (nworkers <= 0)
+				nworkers = 1;
+		}
+	}
+
+	ThreadPool threadPool(nworkers, nworkers);
+	std::vector<DiffWorkerPtr> workers;
+	NotificationQueue queue;
 	myStruct->context->m_pCompareStats->SetCompareThreadCount(nworkers);
-	for (unsigned i = 0; i < nworkers; ++i)
+	for (int i = 0; i < nworkers; ++i)
 	{
 		workers.push_back(DiffWorkerPtr(new DiffWorker(queue, myStruct->context, i)));
 		threadPool.start(*workers[i]);
@@ -498,7 +510,7 @@ static int CompareItems(NotificationQueue& queue, DiffFuncStruct *myStruct, uint
 		myStruct->pSemaphore->wait();
 		uintptr_t curpos = pos;
 		DIFFITEM &di = pCtxt->GetNextSiblingDiffRefPosition(pos);
-		bool existsalldirs = ((pCtxt->GetCompareDirs() == 2 && di.diffcode.isSideBoth()) || (pCtxt->GetCompareDirs() == 3 && di.diffcode.isSideAll()));
+		bool existsalldirs = di.diffcode.existAll();
 		if (di.diffcode.isDirectory() && pCtxt->m_bRecursive)
 		{
 			di.diffcode.diffcode &= ~(DIFFCODE::DIFF | DIFFCODE::SAME);
@@ -532,9 +544,8 @@ static int CompareItems(NotificationQueue& queue, DiffFuncStruct *myStruct, uint
 		WorkCompletedNotification* pWorkCompletedNf = dynamic_cast<WorkCompletedNotification*>(pNf.get());
 		if (pWorkCompletedNf) {
 			DIFFITEM &di = pWorkCompletedNf->data();
-			bool existsalldirs = ((pCtxt->GetCompareDirs() == 2 && di.diffcode.isSideBoth()) || (pCtxt->GetCompareDirs() == 3 && di.diffcode.isSideAll()));
 			if (di.diffcode.isResultDiff() ||
-				(!existsalldirs && !di.diffcode.isResultFiltered()))
+				(!di.diffcode.existAll() && !di.diffcode.isResultFiltered()))
 				res++;
 		}
 		--count;
@@ -550,7 +561,7 @@ static int CompareItems(NotificationQueue& queue, DiffFuncStruct *myStruct, uint
  * @param parentdiffpos [in] Position of parent diff item 
  * @return >= 0 number of diff items, -1 if compare was aborted
  */
-int DirScan_CompareRequestedItems(DiffFuncStruct *myStruct, uintptr_t parentdiffpos)
+static int CompareRequestedItems(DiffFuncStruct *myStruct, uintptr_t parentdiffpos)
 {
 	CDiffContext *pCtxt = myStruct->context;
 	int res = 0;
@@ -566,13 +577,13 @@ int DirScan_CompareRequestedItems(DiffFuncStruct *myStruct, uintptr_t parentdiff
 
 		uintptr_t curpos = pos;
 		DIFFITEM &di = pCtxt->GetNextSiblingDiffRefPosition(pos);
-		bool existsalldirs = ((pCtxt->GetCompareDirs() == 2 && di.diffcode.isSideBoth()) || (pCtxt->GetCompareDirs() == 3 && di.diffcode.isSideAll()));
+		bool existsalldirs = di.diffcode.existAll();
 		if (di.diffcode.isDirectory())
 		{
 			if (pCtxt->m_bRecursive)
 			{
 				di.diffcode.diffcode &= ~(DIFFCODE::DIFF | DIFFCODE::SAME);
-				int ndiff = DirScan_CompareRequestedItems(myStruct, curpos);
+				int ndiff = CompareRequestedItems(myStruct, curpos);
 				if (ndiff > 0)
 				{
 					if (existsalldirs)
@@ -596,6 +607,12 @@ int DirScan_CompareRequestedItems(DiffFuncStruct *myStruct, uintptr_t parentdiff
 			res++;
 	}
 	return res;
+}
+
+int DirScan_CompareRequestedItems(DiffFuncStruct *myStruct, uintptr_t parentdiffpos)
+{
+	CAssureScriptsForThread scriptsForRescan;
+	return CompareRequestedItems(myStruct, parentdiffpos);
 }
 
 static int markChildrenForRescan(CDiffContext *pCtxt, uintptr_t parentdiffpos)
@@ -728,36 +745,9 @@ void CompareDiffItem(DIFFITEM &di, CDiffContext * pCtxt)
 			)
 		{
 			di.diffcode.diffcode |= DIFFCODE::INCLUDED;
-			// 2. Add unique files
-			// We must compare unique files to itself to detect encoding
-			if (di.diffcode.isSideFirstOnly() || di.diffcode.isSideSecondOnly() || (nDirs > 2 && di.diffcode.isSideThirdOnly()))
-			{
-				int nCurrentCompMethod = pCtxt->GetCompareMethod();
-				if (nCurrentCompMethod != CMP_DATE &&
-					nCurrentCompMethod != CMP_DATE_SIZE &&
-					nCurrentCompMethod != CMP_SIZE)
-				{
-					FolderCmp folderCmp;
-					unsigned diffCode = folderCmp.prepAndCompareFiles(pCtxt, di);
-					
-					// Add possible binary flag for unique items
-					if (diffCode & DIFFCODE::BIN)
-						di.diffcode.diffcode |= DIFFCODE::BIN;
-					StoreDiffData(di, pCtxt, &folderCmp);
-				}
-				else
-				{
-					StoreDiffData(di, pCtxt, NULL);
-				}
-			}
-			// 3. Compare two files
-			else
-			{
-				// Really compare
-				FolderCmp folderCmp;
-				di.diffcode.diffcode |= folderCmp.prepAndCompareFiles(pCtxt, di);
-				StoreDiffData(di, pCtxt, &folderCmp);
-			}
+			FolderCmp folderCmp;
+			di.diffcode.diffcode |= folderCmp.prepAndCompareFiles(pCtxt, di);
+			StoreDiffData(di, pCtxt, &folderCmp);
 		}
 		else
 		{
@@ -778,23 +768,17 @@ static void StoreDiffData(DIFFITEM &di, CDiffContext * pCtxt,
 {
 	if (pCmpData)
 	{
-		// Set text statistics
-		if (di.diffcode.isSideLeftOnlyOrBoth())
-			di.diffFileInfo[0].m_textStats = pCmpData->m_diffFileData.m_textStats[0];
-		if (di.diffcode.isSideRightOnlyOrBoth())
-			di.diffFileInfo[1].m_textStats = pCmpData->m_diffFileData.m_textStats[1];
-
 		di.nsdiffs = pCmpData->m_ndiffs;
 		di.nidiffs = pCmpData->m_ntrivialdiffs;
 
-		if (!di.diffcode.isSideFirstOnly())
+		for (int i = 0; i < pCtxt->GetCompareDirs(); ++i)
 		{
-			di.diffFileInfo[1].encoding = pCmpData->m_diffFileData.m_FileLocation[1].encoding;
-		}
-		
-		if (!di.diffcode.isSideSecondOnly())
-		{
-			di.diffFileInfo[0].encoding = pCmpData->m_diffFileData.m_FileLocation[0].encoding;
+			// Set text statistics
+			if (di.diffcode.exists(i))
+			{
+				di.diffFileInfo[i].m_textStats = pCmpData->m_diffFileData.m_textStats[i];
+				di.diffFileInfo[i].encoding = pCmpData->m_diffFileData.m_FileLocation[i].encoding;
+			}
 		}
 	}
 
@@ -815,15 +799,15 @@ static DIFFITEM *AddToList(const String& sLeftDir, const String& sRightDir,
 	const DirItem * lent, const DirItem * rent,
 	unsigned code, DiffFuncStruct *myStruct, DIFFITEM *parent)
 {
-	return AddToList(sLeftDir, sRightDir, sLeftDir, lent, rent, 0, code, myStruct, parent);
+	return AddToList(sLeftDir, sRightDir, sLeftDir, lent, rent, 0, code, myStruct, parent, 2);
 }
 
 /**
  * @brief Add one compare item to list.
  */
-static DIFFITEM *AddToList(const String& sLeftDir, const String& sMiddleDir, const String& sRightDir,
-	const DirItem * lent, const DirItem * ment, const DirItem * rent,
-	unsigned code, DiffFuncStruct *myStruct, DIFFITEM *parent)
+static DIFFITEM *AddToList(const String& sDir1, const String& sDir2, const String& sDir3,
+	const DirItem * ent1, const DirItem * ent2, const DirItem * ent3,
+	unsigned code, DiffFuncStruct *myStruct, DIFFITEM *parent, int nItems)
 {
 	// We must store both paths - we cannot get paths later
 	// and we need unique item paths for example when items
@@ -831,62 +815,65 @@ static DIFFITEM *AddToList(const String& sLeftDir, const String& sMiddleDir, con
 	DIFFITEM *di = myStruct->context->AddDiff(parent);
 
 	di->parent = parent;
-	di->diffFileInfo[0].path = sLeftDir;
-	di->diffFileInfo[1].path = sMiddleDir;
-	di->diffFileInfo[2].path = sRightDir;
+	di->diffFileInfo[0].path = sDir1;
+	di->diffFileInfo[1].path = sDir2;
+	di->diffFileInfo[2].path = sDir3;
 
-	if (lent)
+	if (ent1)
 	{
-		di->diffFileInfo[0].filename = lent->filename;
-		di->diffFileInfo[0].mtime = lent->mtime;
-		di->diffFileInfo[0].ctime = lent->ctime;
-		di->diffFileInfo[0].size = lent->size;
-		di->diffFileInfo[0].flags.attributes = lent->flags.attributes;
+		di->diffFileInfo[0].filename = ent1->filename;
+		di->diffFileInfo[0].mtime = ent1->mtime;
+		di->diffFileInfo[0].ctime = ent1->ctime;
+		di->diffFileInfo[0].size = ent1->size;
+		di->diffFileInfo[0].flags.attributes = ent1->flags.attributes;
 	}
 	else
 	{
 		// Don't break CDirView::DoCopyRightToLeft()
-		if (rent)
-			di->diffFileInfo[0].filename = rent->filename;
-		else if (ment)
-			di->diffFileInfo[0].filename = ment->filename;
+		if (ent3)
+			di->diffFileInfo[0].filename = ent3->filename;
+		else if (ent2)
+			di->diffFileInfo[0].filename = ent2->filename;
 	}
 
-	if (ment)
+	if (ent2)
 	{
-		di->diffFileInfo[1].filename = ment->filename;
-		di->diffFileInfo[1].mtime = ment->mtime;
-		di->diffFileInfo[1].ctime = ment->ctime;
-		di->diffFileInfo[1].size = ment->size;
-		di->diffFileInfo[1].flags.attributes = ment->flags.attributes;
+		di->diffFileInfo[1].filename = ent2->filename;
+		di->diffFileInfo[1].mtime = ent2->mtime;
+		di->diffFileInfo[1].ctime = ent2->ctime;
+		di->diffFileInfo[1].size = ent2->size;
+		di->diffFileInfo[1].flags.attributes = ent2->flags.attributes;
 	}
 	else
 	{
 		// Don't break CDirView::DoCopyLeftToRight()
-		if (lent)
-			di->diffFileInfo[1].filename = lent->filename;
-		else if (rent)
-			di->diffFileInfo[1].filename = rent->filename;
+		if (ent1)
+			di->diffFileInfo[1].filename = ent1->filename;
+		else if (ent3)
+			di->diffFileInfo[1].filename = ent3->filename;
 	}
 
-	if (rent)
+	if (ent3)
 	{
-		di->diffFileInfo[2].filename = rent->filename;
-		di->diffFileInfo[2].mtime = rent->mtime;
-		di->diffFileInfo[2].ctime = rent->ctime;
-		di->diffFileInfo[2].size = rent->size;
-		di->diffFileInfo[2].flags.attributes = rent->flags.attributes;
+		di->diffFileInfo[2].filename = ent3->filename;
+		di->diffFileInfo[2].mtime = ent3->mtime;
+		di->diffFileInfo[2].ctime = ent3->ctime;
+		di->diffFileInfo[2].size = ent3->size;
+		di->diffFileInfo[2].flags.attributes = ent3->flags.attributes;
 	}
 	else
 	{
 		// Don't break CDirView::DoCopyLeftToRight()
-		if (lent)
-			di->diffFileInfo[2].filename = lent->filename;
-		else if (ment)
-			di->diffFileInfo[2].filename = ment->filename;
+		if (ent1)
+			di->diffFileInfo[2].filename = ent1->filename;
+		else if (ent2)
+			di->diffFileInfo[2].filename = ent2->filename;
 	}
 
-	di->diffcode.diffcode = code;
+	if (nItems == 2)
+		di->diffcode.diffcode = code;
+	else
+		di->diffcode.diffcode = code | DIFFCODE::THREEWAY;
 
 	myStruct->context->m_pCompareStats->IncreaseTotalItems();
 	myStruct->pSemaphore->set();

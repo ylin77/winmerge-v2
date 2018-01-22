@@ -62,6 +62,9 @@ void Init(COptionsMgr *pOptions)
 	pOptions->InitOption(OPT_SHOW_IDENTICAL, true);
 	pOptions->InitOption(OPT_SHOW_BINARIES, true);
 	pOptions->InitOption(OPT_SHOW_SKIPPED, false);
+	pOptions->InitOption(OPT_SHOW_DIFFERENT_LEFT_ONLY, true);
+	pOptions->InitOption(OPT_SHOW_DIFFERENT_MIDDLE_ONLY, true);
+	pOptions->InitOption(OPT_SHOW_DIFFERENT_RIGHT_ONLY, true);
 
 	pOptions->InitOption(OPT_SHOW_TOOLBAR, true);
 	pOptions->InitOption(OPT_SHOW_STATUSBAR, true);
@@ -97,6 +100,10 @@ void Init(COptionsMgr *pOptions)
 	pOptions->InitOption(OPT_SHOW_SELECT_FILES_AT_STARTUP, false);
 	pOptions->InitOption(OPT_DIRVIEW_EXPAND_SUBDIRS, false);
 
+	pOptions->InitOption(OPT_REPORTFILES_REPORTTYPE, 0);
+	pOptions->InitOption(OPT_REPORTFILES_COPYTOCLIPBOARD, false);
+	pOptions->InitOption(OPT_REPORTFILES_INCLUDEFILECMPREPORT, false);
+
 	pOptions->InitOption(OPT_AUTOMATIC_RESCAN, false);
 	pOptions->InitOption(OPT_ALLOW_MIXED_EOL, false);
 	pOptions->InitOption(OPT_TAB_SIZE, (int)4);
@@ -122,6 +129,7 @@ void Init(COptionsMgr *pOptions)
 	pOptions->InitOption(OPT_CMP_MATCH_SIMILAR_LINES, false);
 	pOptions->InitOption(OPT_CMP_STOP_AFTER_FIRST, false);
 	pOptions->InitOption(OPT_CMP_QUICK_LIMIT, 4 * 1024 * 1024); // 4 Megs
+	pOptions->InitOption(OPT_CMP_COMPARE_THREADS, -1);
 	pOptions->InitOption(OPT_CMP_WALK_UNIQUE_DIRS, false);
 	pOptions->InitOption(OPT_CMP_IGNORE_REPARSE_POINTS, false);
 	pOptions->InitOption(OPT_CMP_IGNORE_CODEPAGE, true);
@@ -133,6 +141,7 @@ void Init(COptionsMgr *pOptions)
 	pOptions->InitOption(OPT_CMP_IMG_SHOWDIFFERENCES, true);
 	pOptions->InitOption(OPT_CMP_IMG_OVERLAYMOVE, 0);
 	pOptions->InitOption(OPT_CMP_IMG_OVERLAYALPHA, 30);
+	pOptions->InitOption(OPT_CMP_IMG_DRAGGING_MODE, 1);
 	pOptions->InitOption(OPT_CMP_IMG_ZOOM, 1000);
 	pOptions->InitOption(OPT_CMP_IMG_USEBACKCOLOR, true);
 	pOptions->InitOption(OPT_CMP_IMG_BACKCOLOR, 0xFFFFFF);
@@ -179,9 +188,6 @@ void Init(COptionsMgr *pOptions)
 	pOptions->InitOption(OPT_TABBAR_AUTO_MAXWIDTH, true);
 
 	pOptions->InitOption(OPT_MRU_MAX, 9);
-
-	pOptions->InitOption(OPT_CURRENT_VERSION_URL, CurrentVersionURL);
-	pOptions->InitOption(OPT_DOWNLOAD_URL, DownloadUrl);
 
 	Options::DiffOptions::SetDefaults(pOptions);
 	Options::DiffColors::SetDefaults(pOptions);

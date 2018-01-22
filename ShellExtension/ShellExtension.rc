@@ -7,6 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
+#define _USING_V110_SDK71_ 1
 #include "afxres.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -32,6 +33,7 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
+	"#define _USING_V110_SDK71_ 1""\r\n"
     "#include ""afxres.h""\r\n"
     "\0"
 END
@@ -299,8 +301,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,16,5,9
- PRODUCTVERSION 1,16,5,9
+ FILEVERSION 1,17,0,0
+ PRODUCTVERSION 1,17,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -315,14 +317,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "http://www.geocities.co.jp/SiliconValley-SanJose/8165/winmerge.html"
+            VALUE "CompanyName", "http://winmerge.org"
             VALUE "FileDescription", "WinMerge Shell Integration library"
-            VALUE "FileVersion", "1.16.5.9"
+            VALUE "FileVersion", "1.17.0.0"
             VALUE "InternalName", "ShellExtension"
-            VALUE "LegalCopyright", "Copyright 2003-2016"
+            VALUE "LegalCopyright", "Copyright 2003-2017"
             VALUE "OriginalFilename", "ShellExtension.DLL"
             VALUE "ProductName", "WinMerge Shell Integration library"
-            VALUE "ProductVersion", "1.16.5.9"
+            VALUE "ProductVersion", "1.17.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -341,15 +343,11 @@ IDR_WINMERGESHELL       REGISTRY                "WinMergeShell.rgs"
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Bitmap
+// Icon
 //
 
-IDB_WINMERGE            BITMAP                  "WinMerge.bmp"
-IDB_WINMERGE32          BITMAP                  "WinMerge32.bmp"
-IDB_WINMERGE48          BITMAP                  "WinMerge48.bmp"
-IDB_WINMERGEDIR         BITMAP                  "WinMergeDir.bmp"
-IDB_WINMERGEDIR32       BITMAP                  "WinMergeDir32.bmp"
-IDB_WINMERGEDIR48       BITMAP                  "WinMergeDir48.bmp"
+IDI_WINMERGE            ICON                    "WinMerge.ico"
+IDI_WINMERGEDIR         ICON                    "WinMergeDir.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

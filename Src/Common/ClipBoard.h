@@ -8,6 +8,8 @@
 #include <windows.h>
 #include "UnicodeString.h"
 
+inline UINT GetClipTcharTextFormat() { return (sizeof(TCHAR) == 1 ? CF_TEXT : CF_UNICODETEXT); }
+
 bool PutToClipboard(const String & text, HWND currentWindowHandle);
 bool GetFromClipboard(String & text, HWND currentWindowHandle);
 
@@ -31,7 +33,7 @@ void PutFilesToClipboard(const Container& list, HWND currentWindowHandle)
 	}
 
 	strPaths += _T('\0');
-	strPathsSepSpc = string_trim_ws_end(strPathsSepSpc);
+	strPathsSepSpc = strutils::trim_ws_end(strPathsSepSpc);
 
 	// CF_HDROP
 	HGLOBAL hDrop = GlobalAlloc(GHND, sizeof(DROPFILES) + sizeof(TCHAR) * strPaths.length());

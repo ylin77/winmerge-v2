@@ -8,6 +8,7 @@
 
 #include "ColorButton.h"
 #include "OptionsPanel.h"
+#include <array>
 
 class COptionsMgr;
 class SyntaxColors;
@@ -29,7 +30,7 @@ public:
 private:
 
 	SyntaxColors *m_pTempColors;
-	COLORREF m_cCustColors[16];
+	std::array<COLORREF, 16> m_cCustColors;
 
 	//{{AFX_DATA(PropTextColors)
 	enum { IDD = IDD_PROPPAGE_COLORS_TEXT };
@@ -38,6 +39,7 @@ private:
 	CColorButton    m_btnRegularText;
 	CColorButton    m_btnSelectionBackground;
 	CColorButton    m_btnSelectionText;
+	CColorButton    m_btnMarginBackground;
 	bool            m_bCustomColors;
 	//}}AFX_DATA
 
@@ -65,10 +67,8 @@ protected:
 	afx_msg void OnRegularTextColor();
 	afx_msg void OnSelectionBackgroundColor();
 	afx_msg void OnSelectionTextColor();
+	afx_msg void OnMarginBackgroundColor();
 	afx_msg void OnDefaultsStandardColors();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.

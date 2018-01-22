@@ -215,6 +215,7 @@ public:
 	void SetMergeViews(CMergeEditView * pView[]);
 	void SetMergeDetailViews(CMergeEditView * pView[]);
 	void SetDirDoc(CDirDoc * pDirDoc);
+	CDirDoc * GetDirDoc() const { return m_pDirDoc; }
 	void DirDocClosing(CDirDoc * pDirDoc);
 	bool CloseNow();
 	void SwapFiles();
@@ -227,7 +228,8 @@ public:
 	bool DeleteSyncPoint(int pane, int nLine, bool bRescan = true);
 	void ClearSyncPoints();
 	bool HasSyncPoints();
-	std::vector<std::vector<int> > CMergeDoc::GetSyncPointList();
+	std::vector<std::vector<int> > GetSyncPointList();
+	String GetDescription(int pane) const { return m_strDesc[pane]; }
 
 	// Overrides
 	// ClassWizard generated virtual function overrides
@@ -361,8 +363,3 @@ private:
 	String GetFileExt(LPCTSTR sFileName, LPCTSTR sDescription) const;
 	void DoFileSave(int pane);
 };
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Developer Studio will insert additional declarations immediately before the previous line.

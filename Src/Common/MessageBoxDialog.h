@@ -149,6 +149,11 @@ public:
 	// Method for retrieving whether a timeout is disabled.
 	BOOL GetTimeoutDisabled ( );
 
+	// Method for retrieving the former result of the message box from the registry.
+	int GetFormerResult();
+	// Method for storing the former result of the message box to the registry.
+	int SetFormerResult(int nResult);
+
 public:
 
 	//////////////////////////////////////////////////////////////////////////
@@ -236,6 +241,7 @@ private:
 
 	CStatic		m_stcIcon;			// Static control for the icon.
 	CStatic		m_stcMessage;		// Static control for the message.
+	CToolTipCtrl	m_tooltips;
 
 private:
 

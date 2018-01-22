@@ -100,10 +100,10 @@ msgstr "&Otevøít"
 msgid "with &Registered Application"
 msgstr "pøidruženou &aplikací"
 
-#: Merge.rc:46724E8D
+#: Merge.rc:321D741E
 #, c-format
-msgid "with &External Editor"
-msgstr "externím &editorem"
+msgid "with &External Editor\tCtrl+Alt+E"
+msgstr ""
 
 #: Merge.rc:AC3AA12
 #, c-format
@@ -160,12 +160,32 @@ msgstr "&Skrýt"
 msgid "&Alpha Blend"
 msgstr ""
 
+#: Merge.rc:237A0532
+#, c-format
+msgid "Alpha &Blend Animation"
+msgstr ""
+
+#: Merge.rc:5806E58F
+#, c-format
+msgid "Dragging &Mode"
+msgstr ""
+
+#: Merge.rc:43017E45
+#, c-format
+msgid "&Move"
+msgstr "Pø&esunout"
+
+#: Merge.rc:5A9A713A
+#, c-format
+msgid "&Adjust Offset"
+msgstr ""
+
 #: Merge.rc:100AAFAC
 #, c-format
 msgid "&Set Background Color"
 msgstr ""
 
-#: Merge.rc:43017E45
+#: Merge.rc:43017E46
 #, c-format
 msgid "&File"
 msgstr "&Soubor"
@@ -220,7 +240,7 @@ msgstr "< žádné >"
 msgid "E&xit"
 msgstr "&Konec"
 
-#: Merge.rc:43017E46
+#: Merge.rc:43017E47
 #, c-format
 msgid "&Edit"
 msgstr "Úpr&avy"
@@ -230,7 +250,7 @@ msgstr "Úpr&avy"
 msgid "&Options..."
 msgstr "Možnost&i..."
 
-#: Merge.rc:43017E47
+#: Merge.rc:43017E48
 #, c-format
 msgid "&View"
 msgstr "&Zobrazit"
@@ -250,7 +270,7 @@ msgstr "&Malý"
 msgid "&Big"
 msgstr "&Velký"
 
-#: Merge.rc:43017E48
+#: Merge.rc:43017E49
 #, c-format
 msgid "&Huge"
 msgstr ""
@@ -355,7 +375,7 @@ msgstr "Vedle sebe &svisle"
 msgid "&Cascade"
 msgstr "&Na sebe"
 
-#: Merge.rc:43017E49
+#: Merge.rc:43017E4A
 #, c-format
 msgid "&Help"
 msgstr "Nápo&vìda"
@@ -365,9 +385,14 @@ msgstr "Nápo&vìda"
 msgid "&WinMerge Help\tF1"
 msgstr "&Obsah a rejstøík\tF1"
 
-#: Merge.rc:3938FFC2
+#: Merge.rc:1B17601E
 #, c-format
-msgid "&Check For Updates"
+msgid "R&elease Notes"
+msgstr ""
+
+#: Merge.rc:6E470BE7
+#, c-format
+msgid "&Translations"
 msgstr ""
 
 #: Merge.rc:1C6125F4
@@ -380,7 +405,7 @@ msgstr "&Nastavení"
 msgid "&GNU General Public License"
 msgstr "Obecná veøejná licence &GNU"
 
-#: Merge.rc:3938FFC3
+#: Merge.rc:3938FFC2
 #, c-format
 msgid "&About WinMerge..."
 msgstr "O &aplikaci WinMerge..."
@@ -449,6 +474,26 @@ msgstr "Ukázat pø&eskoèené položky"
 #, c-format
 msgid "S&how Binary Files"
 msgstr "Ukázat &binární soubory"
+
+#: Merge.rc:5A9A713B
+#, c-format
+msgid "&3-way Compare"
+msgstr ""
+
+#: Merge.rc:200AD0D1
+#, c-format
+msgid "Show &Left Only Different Items"
+msgstr ""
+
+#: Merge.rc:4899EBE1
+#, c-format
+msgid "Show &Middle Only Different Items"
+msgstr ""
+
+#: Merge.rc:614F49A9
+#, c-format
+msgid "Show &Right Only Different Items"
+msgstr ""
 
 #: Merge.rc:6F833C17
 #, c-format
@@ -560,7 +605,7 @@ msgstr "Vlastní &sloupce..."
 msgid "Generate &Report..."
 msgstr "&Protokol porovnání..."
 
-#: Merge.rc:6E470BE7
+#: Merge.rc:6E470BE8
 #, c-format
 msgid "&Save\tCtrl+S"
 msgstr "&Uložit\tCtrl+S"
@@ -655,12 +700,12 @@ msgstr ""
 msgid "&Binary"
 msgstr ""
 
-#: Merge.rc:6E470BE8
+#: Merge.rc:6E470BE9
 #, c-format
 msgid "&Undo\tCtrl+Z"
 msgstr "&Zpìt\tCtrl+Z"
 
-#: Merge.rc:6E470BE9
+#: Merge.rc:6E470BEA
 #, c-format
 msgid "&Redo\tCtrl+Y"
 msgstr "Znov&u\tCtrl+Y"
@@ -670,12 +715,12 @@ msgstr "Znov&u\tCtrl+Y"
 msgid "Cu&t\tCtrl+X"
 msgstr "Vyj&mout\tCtrl+X"
 
-#: Merge.rc:6E470BEA
+#: Merge.rc:6E470BEB
 #, c-format
 msgid "&Copy\tCtrl+C"
 msgstr "&Kopírovat\tCtrl+C"
 
-#: Merge.rc:5A9A713A
+#: Merge.rc:5A9A713C
 #, c-format
 msgid "&Paste\tCtrl+V"
 msgstr "&Vložit\tCtrl+V"
@@ -694,6 +739,11 @@ msgstr "&Najít...\tCtrl+F"
 #, c-format
 msgid "Repla&ce...\tCtrl+H"
 msgstr "Na&hradit...\tCtrl+H"
+
+#: Merge.rc:4B91C2D1
+#, c-format
+msgid "&Marker...\tCtrl+Shift+M"
+msgstr ""
 
 #: Merge.rc:669F87F4
 #, c-format
@@ -715,7 +765,7 @@ msgstr "Zá&ložky"
 msgid "&Toggle Bookmark\tCtrl+F2"
 msgstr "Pøepnout &záložku\tCtrl+F2"
 
-#: Merge.rc:3938FFC4
+#: Merge.rc:3938FFC3
 #, c-format
 msgid "&Next Bookmark\tF2"
 msgstr "&Další záložka\tF2"
@@ -756,7 +806,7 @@ msgstr "&Normální\tCtrl+*"
 msgid "Syntax Highlight"
 msgstr "Zvýraznìní syntaxe"
 
-#: Merge.rc:6E470BEB
+#: Merge.rc:6E470BEC
 #, c-format
 msgid "&Diff Context"
 msgstr ""
@@ -1056,11 +1106,6 @@ msgstr "P&ravé doleva (%1 z %2)"
 msgid "Right to... (%1 of %2)"
 msgstr "Pr&avé do... (%1 z %2)"
 
-#: Merge.rc:43017E4A
-#, c-format
-msgid "&Move"
-msgstr "Pø&esunout"
-
 #: Merge.rc:89AF4FA
 #, c-format
 msgid "&Delete"
@@ -1105,6 +1150,16 @@ msgstr "&Skrýt položky"
 #, c-format
 msgid "&Open Left"
 msgstr "Otevøít &levé"
+
+#: Merge.rc:46724E8D
+#, c-format
+msgid "with &External Editor"
+msgstr "externím &editorem"
+
+#: Merge.rc:5A9A713D
+#, c-format
+msgid "&Parent Folder"
+msgstr ""
 
 #: Merge.rc:761E6872
 #, c-format
@@ -1216,7 +1271,7 @@ msgstr "Kopírovat &název souboru"
 msgid "Prediffer Settings"
 msgstr ""
 
-#: Merge.rc:6E470BEC
+#: Merge.rc:6E470BED
 #, c-format
 msgid "&No prediffer"
 msgstr ""
@@ -1346,19 +1401,29 @@ msgstr "Pøispìvatelé"
 msgid "Select Files or Folders"
 msgstr "Vybrat soubory nebo složky..."
 
+#: Merge.rc:43017E4D
+#, c-format
+msgid "&1st:"
+msgstr ""
+
 #: Merge.rc:68816EE7
 #, c-format
 msgid "&Browse..."
 msgstr "&Procházet..."
+
+#: Merge.rc:43017E4E
+#, c-format
+msgid "&2nd:"
+msgstr ""
 
 #: Merge.rc:78E0CE0E
 #, c-format
 msgid "B&rowse..."
 msgstr "Pr&ocházet..."
 
-#: Merge.rc:6E470BED
+#: Merge.rc:78B3B626
 #, c-format
-msgid "&3(Optional):"
+msgid "&3rd(Optional):"
 msgstr ""
 
 #: Merge.rc:78E0CE0F
@@ -1598,7 +1663,7 @@ msgstr "&OK"
 msgid "Replace"
 msgstr "Nahradit"
 
-#: Merge.rc:1B17601E
+#: Merge.rc:1B17601F
 #, c-format
 msgid "Re&place with:"
 msgstr "Èí&m nahradit:"
@@ -1633,6 +1698,31 @@ msgstr "Na&hradit"
 msgid "Replace &All"
 msgstr "Nahradit &vše"
 
+#: Merge.rc:2FC0BA7B
+#, c-format
+msgid "Markers"
+msgstr ""
+
+#: Merge.rc:61E8009D
+#, c-format
+msgid "Enable &Markers"
+msgstr ""
+
+#: Merge.rc:24A380
+#, c-format
+msgid "New"
+msgstr "&Nový"
+
+#: Merge.rc:3938FFC4
+#, c-format
+msgid "&Background color:"
+msgstr ""
+
+#: Merge.rc:1D2E49FB
+#, c-format
+msgid "&Apply"
+msgstr "P&oužít"
+
 #: Merge.rc:4C3E0A2D
 #, c-format
 msgid "CheckOut"
@@ -1662,11 +1752,6 @@ msgstr "Povolit filtrování øádkù"
 #, c-format
 msgid "Regular Expressions (one per line):"
 msgstr "Regulérní výrazy (jeden na øádek):"
-
-#: Merge.rc:24A380
-#, c-format
-msgid "New"
-msgstr "&Nový"
 
 #: Merge.rc:3ECBF05
 #, c-format
@@ -1763,7 +1848,7 @@ msgstr "Odeslat odstranìné soubory do &koše"
 msgid "&External editor:"
 msgstr "&Externí editor:"
 
-#: Merge.rc:78B3B626
+#: Merge.rc:78B3B627
 #, c-format
 msgid "&Filter folder:"
 msgstr "Složka vlastních &filtrù:"
@@ -1798,12 +1883,12 @@ msgstr "Soubor &1:"
 msgid "File&2:"
 msgstr "Soubor &2:"
 
-#: Merge.rc:43017E4D
+#: Merge.rc:43017E4F
 #, c-format
 msgid "&Swap"
 msgstr "Z&amìnit"
 
-#: Merge.rc:4B91C2D1
+#: Merge.rc:4B91C2D2
 #, c-format
 msgid "&Append to existing file"
 msgstr "Pø&ipojit ke stávajícímu souboru"
@@ -1938,7 +2023,7 @@ msgstr "Øá&dek"
 msgid "&Difference"
 msgstr "Ro&zdíl"
 
-#: Merge.rc:1D2E49FB
+#: Merge.rc:1D2E49FC
 #, c-format
 msgid "&Go To"
 msgstr "&Pøejít"
@@ -1958,7 +2043,7 @@ msgstr "Prázdná místa"
 msgid "&Compare"
 msgstr "P&orovnávat"
 
-#: Merge.rc:5A9A713B
+#: Merge.rc:5A9A713E
 #, c-format
 msgid "&Ignore change"
 msgstr "Ignorovat &zmìny"
@@ -2263,6 +2348,31 @@ msgstr "Uživatelská 2:"
 msgid "Bold"
 msgstr "Tuèné"
 
+#: Merge.rc:2CEE4749
+#, c-format
+msgid "Marker colors"
+msgstr ""
+
+#: Merge.rc:56BD1FBA
+#, c-format
+msgid "Search Marker:"
+msgstr ""
+
+#: Merge.rc:7B76381B
+#, c-format
+msgid "User Defined Marker1:"
+msgstr ""
+
+#: Merge.rc:7B76381C
+#, c-format
+msgid "User Defined Marker2:"
+msgstr ""
+
+#: Merge.rc:7B76381D
+#, c-format
+msgid "User Defined Marker3:"
+msgstr ""
+
 #: Merge.rc:387F7980
 #, c-format
 msgid "Folder Compare Report"
@@ -2388,12 +2498,12 @@ msgstr "Celkem:"
 msgid "Close"
 msgstr "Zavøít"
 
-#: Merge.rc:2FC0BA7B
+#: Merge.rc:2FC0BA7C
 #, c-format
 msgid "Middle:"
 msgstr ""
 
-#: Merge.rc:2CEE4749
+#: Merge.rc:2CEE474A
 #, c-format
 msgid "Missing Left:"
 msgstr ""
@@ -2423,7 +2533,7 @@ msgstr "(ovlivnìno)"
 msgid "Select Codepage for"
 msgstr "Zvolte kódování pro"
 
-#: Merge.rc:5A9A713C
+#: Merge.rc:5A9A713F
 #, c-format
 msgid "&File Loading:"
 msgstr "&Naètení souboru:"
@@ -2437,11 +2547,6 @@ msgstr "&Uložení souboru:"
 #, c-format
 msgid "&Use same codepage for both"
 msgstr "Použít &stejnou znakovou stránku pro oba"
-
-#: Merge.rc:1D2E49FC
-#, c-format
-msgid "&Apply"
-msgstr "P&oužít"
 
 #: Merge.rc:89AF4FE
 #, c-format
@@ -2473,7 +2578,7 @@ msgstr "&Název složky"
 msgid "Result:"
 msgstr "Výsledek:"
 
-#: Merge.rc:43017E4E
+#: Merge.rc:43017E50
 #, c-format
 msgid "&Test"
 msgstr "Z&kusit"
@@ -2507,6 +2612,11 @@ msgstr "Øádný text:"
 #, c-format
 msgid "Selection:"
 msgstr "Výbìr:"
+
+#: Merge.rc:2FC0BA7D
+#, c-format
+msgid "Margin:"
+msgstr ""
 
 #: Merge.rc:D109E01
 #, c-format
@@ -2553,7 +2663,7 @@ msgstr "Zálohování souborù"
 msgid "Create backup files in:"
 msgstr "Vytváøet záložní soubory pro:"
 
-#: Merge.rc:78B3B627
+#: Merge.rc:78B3B628
 #, c-format
 msgid "&Folder compare"
 msgstr "s&ložek"
@@ -2628,7 +2738,7 @@ msgstr "Ne"
 msgid "Plugins"
 msgstr "Pluginy"
 
-#: Merge.rc:78B3B628
+#: Merge.rc:78B3B629
 #, c-format
 msgid "&Enable plugins"
 msgstr "&Povolit pluginy"
@@ -2698,6 +2808,11 @@ msgstr ""
 msgid "&Quick compare limit (MB):"
 msgstr "&Omezení pro rychlé porovnání (MB):"
 
+#: Merge.rc:2188DD49
+#, c-format
+msgid "&Number of compare threads (a negative value implies addition of the number of available CPU cores):"
+msgstr ""
+
 #: Merge.rc:17BC2F9E
 #, c-format
 msgid "Binary"
@@ -2718,7 +2833,7 @@ msgstr ""
 msgid "View &Settings..."
 msgstr ""
 
-#: Merge.rc:78B3B629
+#: Merge.rc:78B3B62A
 #, c-format
 msgid "&Binary Mode..."
 msgstr ""
@@ -2888,7 +3003,7 @@ msgstr "Ne vš&em"
 msgid "&Continue"
 msgstr "Pok&raèovat"
 
-#: Merge.rc:43017E4F
+#: Merge.rc:43017E51
 #, c-format
 msgid "&Skip"
 msgstr "Pøe&skoèit"
@@ -2907,6 +3022,11 @@ msgstr "T&uto zprávu již pøíštì nezobrazovat."
 #, c-format
 msgid "Don't ask this &question again."
 msgstr "Na t&uto otázku se již pøíštì nedotazovat."
+
+#: Merge.rc:78ACB5DB
+#, c-format
+msgid "To make this messagebox visible again, press the Reset button on the General page of the Options dialog."
+msgstr ""
 
 #: Merge.rc:39000D57
 #, c-format
@@ -3281,7 +3401,7 @@ msgstr ""
 msgid "Middle and right path is invalid!"
 msgstr ""
 
-#: Merge.rc:237A0532
+#: Merge.rc:237A0533
 #, c-format
 msgid "All paths are invalid!"
 msgstr ""
@@ -3499,7 +3619,7 @@ msgstr ""
 msgid "No VSS database(s) found!"
 msgstr ""
 
-#: Merge.rc:61E8009D
+#: Merge.rc:61E8009E
 #, c-format
 msgid "Error from VSS:"
 msgstr ""
@@ -3859,7 +3979,7 @@ msgstr "Konce øádkù vpravo"
 msgid "Left Encoding"
 msgstr "Kódování vlevo"
 
-#: Merge.rc:1B17601F
+#: Merge.rc:1B176020
 #, c-format
 msgid "Right Encoding"
 msgstr "Kódování vpravo"
@@ -3904,7 +4024,7 @@ msgstr "Pouze vlevo: %1"
 msgid "Middle only: %1"
 msgstr ""
 
-#: Merge.rc:1B176020
+#: Merge.rc:1B176021
 #, c-format
 msgid "Right only: %1"
 msgstr "Pouze vpravo: %1"
@@ -3973,6 +4093,21 @@ msgstr "Chyba"
 #, c-format
 msgid "Text files are identical"
 msgstr "Textové soubory jsou shodné"
+
+#: Merge.rc:1DEEB161
+#, c-format
+msgid "(Middle and right are identical)"
+msgstr ""
+
+#: Merge.rc:1D99B043
+#, c-format
+msgid "(Left and right are identical)"
+msgstr ""
+
+#: Merge.rc:159C584C
+#, c-format
+msgid "(Left and middle are identical)"
+msgstr ""
 
 #: Merge.rc:12D66B45
 #, c-format
@@ -4252,6 +4387,26 @@ msgstr "Binární soubor nelze otevøít pro úpravy."
 #, c-format
 msgid "The folder exists only in other side and cannot be opened.\n\nDo you want to create a matching folder:\n%1\nto the other side and open these folders?"
 msgstr "Složka existuje pouze na jedné stranì a nelze ji otevøít.\n\nChcete vytvoøit odpovídající složku na druhé stranì a otevøít ji?"
+
+#: Merge.rc:36F211E1
+#, c-format
+msgid "Do you want to move to the next file?"
+msgstr ""
+
+#: Merge.rc:6A0A36F1
+#, c-format
+msgid "Do you want to move to the previous file?"
+msgstr ""
+
+#: Merge.rc:36F211E2
+#, c-format
+msgid "Do you want to move to the next page?"
+msgstr ""
+
+#: Merge.rc:6A0A36F2
+#, c-format
+msgid "Do you want to move to the previous page?"
+msgstr ""
 
 #: Merge.rc:4A700AB0
 #, c-format
@@ -4693,6 +4848,11 @@ msgstr ""
 msgid "Shell"
 msgstr ""
 
+#: Merge.rc:4E44AD6
+#, c-format
+msgid "VHDL"
+msgstr ""
+
 #: Merge.rc:8AF7E6B
 #, c-format
 msgid "Close &Left Tabs"
@@ -4721,5 +4881,20 @@ msgstr ""
 #: Merge.rc:4D3A8E6D
 #, c-format
 msgid "frhed(http://frhed.sourceforge.net/) not installed"
+msgstr ""
+
+#: Merge.rc:73B321AA
+#, c-format
+msgid "%1 does not exist. Do you want to create it?"
+msgstr ""
+
+#: Merge.rc:3A5D5964
+#, c-format
+msgid "Failed to create folder."
+msgstr ""
+
+#: Merge.rc:64F70DD6
+#, c-format
+msgid "You can specify the following parameters to the path:\n$file: Path name of the current file\n$linenum: Line number of the current cursor position"
 msgstr ""
 

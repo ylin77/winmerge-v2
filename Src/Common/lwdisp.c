@@ -48,13 +48,15 @@ DATE:		BY:					DESCRIPTION:
 struct IShellView;			// avoid MSC warning C4115
 struct _RPC_ASYNC_STATE;	// avoid MSC warning C4115
 
+#pragma warning (push)			// prevent "warning C4091: 'typedef ': ignored on left of 'tagGPFIDL_FLAGS' when no variable is declared"
+#pragma warning (disable:4091)	// VC bug when using XP enabled toolsets.
 #include <shlobj.h>
+#pragma warning (pop)
 #include <shlwapi.h>
 #include <tchar.h>
 #include <stdarg.h>
 #include <strsafe.h>
 #include "lwdisp.h"
-#include "dllproxy.h"
 
 /**
 * @brief Display or return error message string (from
@@ -184,21 +186,24 @@ LPDISPATCH CreatDispatchBy32BitProxy(LPCTSTR source, LPCWSTR progid)
 
 LPDISPATCH CreateDispatchBySourceAndCLSID(LPCTSTR source, CLSID *pObjectCLSID)
 {
-	SCODE sc;
 	LPDISPATCH pv = NULL;
-	IClassFactory *piClassFactory;
-	EXPORT_DLLPROXY
-	(
-		Dll, "",
-		HRESULT(NTAPI*DllGetClassObject)(REFCLSID,REFIID,IClassFactory**);
-	);
-	mycpyt2a(source, Dll.SIG+strlen(Dll.SIG), sizeof(Dll.SIG)-strlen(Dll.SIG));
-	if ((FARPROC)DLLPROXY(Dll)->DllGetClassObject != DllProxy_ModuleState.Unresolved)
-		if (SUCCEEDED(sc=DLLPROXY(Dll)->DllGetClassObject(pObjectCLSID, &IID_IClassFactory, &piClassFactory)))
+	HMODULE hLibrary = LoadLibrary(source);
+	if (hLibrary)
+	{
+		HRESULT (NTAPI*DllGetClassObject)(REFCLSID,REFIID,IClassFactory**)
+			= (HRESULT(NTAPI*)(REFCLSID, REFIID, IClassFactory**))GetProcAddress(hLibrary, "DllGetClassObject");
+		if (DllGetClassObject)
 		{
-			sc=piClassFactory->lpVtbl->CreateInstance(piClassFactory, 0, &IID_IDispatch, &pv);
+			SCODE sc;
+			IClassFactory *piClassFactory;
+			if (SUCCEEDED(sc = DllGetClassObject(pObjectCLSID, &IID_IClassFactory, &piClassFactory)))
+			{
+				sc = piClassFactory->lpVtbl->CreateInstance(piClassFactory, 0, &IID_IDispatch, &pv);
+			}
 		}
-
+		if (!pv)
+			FreeLibrary(hLibrary);
+	}
 	return pv;
 }
 
@@ -362,6 +367,7 @@ STDAPI invokeV(LPDISPATCH pi, VARIANT *ret, DISPID id, LPCCH op, VARIANT *argv)
 	EXCEPINFO excepInfo = {0};
 	dispparams.cArgs = LOBYTE((UINT_PTR)op);
 	dispparams.cNamedArgs = 0;
+	dispparams.rgvarg = argv;
 	if (wFlags & (DISPATCH_PROPERTYPUT|DISPATCH_PROPERTYPUTREF))
 	{
 		dispparams.cNamedArgs = 1;
@@ -371,8 +377,8 @@ STDAPI invokeV(LPDISPATCH pi, VARIANT *ret, DISPID id, LPCCH op, VARIANT *argv)
 	{
 		BOOL bParamByRef = FALSE;
 		BOOL bNeedToConv = FALSE;
-		VARIANT varParams[12];
-		VARIANT varData[12];
+		VARIANT varParams[12] = { 0 };
+		VARIANT varData[12] = { 0 };
 		int i;
 
 		for (i = 0; i < (int)dispparams.cArgs; i++)

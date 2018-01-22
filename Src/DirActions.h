@@ -108,6 +108,9 @@ struct DirViewFilterSettings
 		show_binaries = getoptbool(OPT_SHOW_BINARIES);
 		show_identical = getoptbool(OPT_SHOW_IDENTICAL);
 		show_different = getoptbool(OPT_SHOW_DIFFERENT);
+		show_different_left_only = getoptbool(OPT_SHOW_DIFFERENT_LEFT_ONLY);
+		show_different_middle_only = getoptbool(OPT_SHOW_DIFFERENT_MIDDLE_ONLY);
+		show_different_right_only = getoptbool(OPT_SHOW_DIFFERENT_RIGHT_ONLY);
 		tree_mode = getoptbool(OPT_TREE_MODE);
 	};
 	bool show_skipped;
@@ -117,6 +120,9 @@ struct DirViewFilterSettings
 	bool show_binaries;
 	bool show_identical;
 	bool show_different;
+	bool show_different_left_only;
+	bool show_different_middle_only;
+	bool show_different_right_only;
 	bool tree_mode;
 };
 
@@ -159,7 +165,7 @@ bool GetOpenThreeItems(const CDiffContext& ctxt, uintptr_t pos1, uintptr_t pos2,
 void GetItemFileNames(const CDiffContext& ctxt, const DIFFITEM& di, String& strLeft, String& strRight);
 PathContext GetItemFileNames(const CDiffContext& ctxt, const DIFFITEM& di);
 String GetItemFileName(const CDiffContext& ctx, const DIFFITEM & di, int index);
-int GetColImage(const CDiffContext&ctxt, const DIFFITEM & di);
+int GetColImage(const DIFFITEM & di);
 
 void SetDiffStatus(DIFFITEM& di, unsigned  diffcode, unsigned mask);
 void SetDiffCompare(DIFFITEM& di, unsigned diffcode);
@@ -294,6 +300,12 @@ struct DirActions
 	bool IsItemOpenableOnWith(const DIFFITEM& di) const
 	{
 		return (di.diffcode.diffcode != 0 && ::IsItemOpenableOnWith(di, SideToIndex(m_ctxt, src)));
+	}
+
+	template <SIDE_TYPE src>
+	bool IsParentFolderOpenable(const DIFFITEM& di) const
+	{
+		return (di.diffcode.diffcode != 0 && di.diffcode.exists(SideToIndex(m_ctxt, src)));
 	}
 
 	bool IsItemFile(const DIFFITEM& di) const
@@ -602,21 +614,13 @@ OutputIterator CopyPathnamesForDragAndDrop(const InputIterator& begin, const Inp
 		if (di.diffcode.diffcode == 0)
 			continue;
 
-		if (!IsItemExistAll(ctxt, di) || di.diffcode.isResultDiff())
+		for (int i = 0; i < ctxt.GetCompareDirs(); ++i)
 		{
-			for (int i = 0; i < ctxt.GetCompareDirs(); ++i)
+			if (di.diffcode.exists(i))
 			{
-				if (di.diffcode.exists(i))
-				{
-					*result = GetItemFileName(ctxt, di, i);
-					++result;
-				}
+				*result = GetItemFileName(ctxt, di, i);
+				++result;
 			}
-		}
-		else
-		{
-			*result = GetItemFileName(ctxt, di, 0);
-			++result;
 		}
 	}
 	return result;
@@ -688,7 +692,7 @@ std::pair<int, int> CountPredifferYesNo(const InputIterator& begin, const InputI
 			&& !di.diffcode.isResultFiltered())
 		{
 			PathContext files = GetItemFileNames(ctxt, di);
-			String filteredFilenames = string_join(files.begin(), files.end(), _T("|"));
+			String filteredFilenames = strutils::join(files.begin(), files.end(), _T("|"));
 			PackingInfo * unpacker;
 			PrediffingInfo * prediffer;
 			const_cast<CDiffContext&>(ctxt).FetchPluginInfos(filteredFilenames, &unpacker, &prediffer);

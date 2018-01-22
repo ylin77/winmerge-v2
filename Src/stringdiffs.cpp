@@ -1,7 +1,7 @@
 /** 
  * @file  stringdiffs.cpp
  *
- * @brief Implementation file for sd_ComputeWordDiffs (q.v.)
+ * @brief Implementation file for ComputeWordDiffs (q.v.)
  *
  */
 
@@ -17,6 +17,9 @@
 
 using std::vector;
 
+namespace strdiff
+{
+
 static bool Initialized;
 static bool CustomChars;
 static TCHAR *BreakChars;
@@ -25,13 +28,13 @@ static TCHAR BreakCharDefaults[] = _T(",.;:");
 static bool isSafeWhitespace(TCHAR ch);
 static bool isWordBreak(int breakType, const TCHAR *str, int index);
 
-void sd_Init()
+void Init()
 {
 	BreakChars = &BreakCharDefaults[0];
 	Initialized = true;
 }
 
-void sd_Close()
+void Close()
 {
 	if (CustomChars)
 	{
@@ -42,7 +45,7 @@ void sd_Close()
 	Initialized = false;
 }
 
-void sd_SetBreakChars(const TCHAR *breakChars)
+void SetBreakChars(const TCHAR *breakChars)
 {
 	assert(Initialized);
 
@@ -54,12 +57,12 @@ void sd_SetBreakChars(const TCHAR *breakChars)
 }
 
 void
-sd_ComputeWordDiffs(const String& str1, const String& str2,
+ComputeWordDiffs(const String& str1, const String& str2,
 	bool case_sensitive, int whitespace, int breakType, bool byte_level,
 	std::vector<wdiff> * pDiffs)
 {
 	String strs[3] = {str1, str2, _T("")};
-	sd_ComputeWordDiffs(2, strs, case_sensitive, whitespace, breakType, byte_level, pDiffs);
+	ComputeWordDiffs(2, strs, case_sensitive, whitespace, breakType, byte_level, pDiffs);
 }
 
 struct Comp02Functor
@@ -94,7 +97,7 @@ struct Comp02Functor
  * @brief Construct our worker object and tell it to do the work
  */
 void
-sd_ComputeWordDiffs(int nFiles, const String str[3],
+ComputeWordDiffs(int nFiles, const String str[3],
 	bool case_sensitive, int whitespace, int breakType, bool byte_level,
 	std::vector<wdiff> * pDiffs)
 {
@@ -362,6 +365,10 @@ stringdiffs::BuildWordsArray(const String & str, std::vector<word>& words)
 {
 	int i=0, begin=0;
 
+	size_t sLen = str.length();
+	assert(sLen < INT_MAX);
+	int iLen = static_cast<int>(sLen);
+
 	// dummy;
 	words.push_back(word(0, -1, 0, 0));
 
@@ -380,7 +387,7 @@ inspace:
 
 		words.push_back(word(begin, e, dlspace, Hash(str, begin, e, 0)));
 	}
-	if (i == str.length())
+	if (i == iLen)
 		return;
 	begin = i;
 	goto inword;
@@ -388,7 +395,7 @@ inspace:
 	// state when we are inside a word
 inword:
 	bool atspace=false;
-	if (i == str.length() || ((atspace = isSafeWhitespace(str[i])) != 0) || isWordBreak(m_breakType, str.c_str(), i))
+	if (i == iLen || ((atspace = isSafeWhitespace(str[i])) != 0) || isWordBreak(m_breakType, str.c_str(), i))
 	{
 		if (begin<i)
 		{
@@ -398,7 +405,7 @@ inword:
 			
 			words.push_back(word(begin, e, dlword, Hash(str, begin, e, 0)));
 		}
-		if (i == str.length())
+		if (i == iLen)
 		{
 			return;
 		}
@@ -525,13 +532,13 @@ stringdiffs::caseMatch(TCHAR ch1, TCHAR ch2) const
 int
 stringdiffs::onp(std::vector<char> &edscript)
 {
-	int M = m_words1.size() - 1;
-	int N = m_words2.size() - 1;
+	int M = static_cast<int>(m_words1.size() - 1);
+	int N = static_cast<int>(m_words2.size() - 1);
 	bool exchanged = false;
 	if (M > N)
 	{
-		M = m_words2.size() - 1;
-		N = m_words1.size() - 1;
+		M = static_cast<int>(m_words2.size() - 1);
+		N = static_cast<int>(m_words1.size() - 1);
 		exchanged = true;
 	}
 	int *fp = (new int[(M+1) + 1 + (N+1)]) + (M+1);
@@ -617,9 +624,8 @@ stringdiffs::onp(std::vector<char> &edscript)
 int
 stringdiffs::snake(int k, int y, bool exchanged)
 {
-
-	int M = exchanged ? m_words2.size() - 1 : m_words1.size() - 1;
-	int N = exchanged ? m_words1.size() - 1 : m_words2.size() - 1;
+	int M = static_cast<int>(exchanged ? m_words2.size() - 1 : m_words1.size() - 1);
+	int N = static_cast<int>(exchanged ? m_words1.size() - 1 : m_words2.size() - 1);
 	int x = y - k;
 	while (x < M && y < N && (exchanged ? AreWordsSame(m_words1[y + 1], m_words2[x + 1]) : AreWordsSame(m_words1[x + 1], m_words2[y + 1]))) {
 		x = x + 1; y = y + 1;
@@ -759,7 +765,7 @@ AdvanceOverWhitespace(LPCTSTR * pcurrent, LPCTSTR end)
  * Assumes whitespace is never leadbyte or trailbyte!
  */
 void
-sd_ComputeByteDiff(String & str1, String & str2, 
+ComputeByteDiff(String & str1, String & str2, 
 		   bool casitive, int xwhite, 
 		   int begin[2], int end[2], bool equal)
 {
@@ -767,8 +773,8 @@ sd_ComputeByteDiff(String & str1, String & str2,
 	// Also this way can distinguish if we set begin[0] to -1 for no diff in line
 	begin[0] = end[0] = begin[1] = end[1] = 0;
 
-	int len1 = str1.length();
-	int len2 = str2.length();
+	int len1 = static_cast<int>(str1.length());
+	int len2 = static_cast<int>(str2.length());
 
 	LPCTSTR pbeg1 = str1.c_str();
 	LPCTSTR pbeg2 = str2.c_str();
@@ -900,8 +906,8 @@ sd_ComputeByteDiff(String & str1, String & str2,
 
 	// Store results of advance into return variables (begin[0] & begin[1])
 	// -1 in a begin variable means no visible diff area
-	begin[0] = py1 - pbeg1;
-	begin[1] = py2 - pbeg2;
+	begin[0] = static_cast<int>(py1 - pbeg1);
+	begin[1] = static_cast<int>(py2 - pbeg2);
 
 	LPCTSTR pz1 = pen1;
 	LPCTSTR pz2 = pen2;
@@ -985,8 +991,8 @@ sd_ComputeByteDiff(String & str1, String & str2,
 	}*/
 
 	// Store results of advance into return variables (end[0] & end[1])
-	end[0] = pz1 - pbeg1;
-	end[1] = pz2 - pbeg2;
+	end[0] = static_cast<int>(pz1 - pbeg1);
+	end[1] = static_cast<int>(pz2 - pbeg2);
 
 	// Check if difference region was empty
 	if (begin[0] == end[0] + 1 && begin[1] == end[1] + 1)
@@ -1009,7 +1015,7 @@ void stringdiffs::wordLevelToByteLevel()
 		String str1_2, str2_2;
 		str1_2 = m_str1.substr(diff.begin[0], diff.end[0] - diff.begin[0] + 1);
 		str2_2 = m_str2.substr(diff.begin[1], diff.end[1] - diff.begin[1] + 1);
-		sd_ComputeByteDiff(str1_2, str2_2, m_case_sensitive, m_whitespace, begin, end, false);
+		ComputeByteDiff(str1_2, str2_2, m_case_sensitive, m_whitespace, begin, end, false);
 		if (begin[0] == -1)
 		{
 			// no visible diff on side1
@@ -1033,3 +1039,4 @@ void stringdiffs::wordLevelToByteLevel()
 	}
 }
 
+}

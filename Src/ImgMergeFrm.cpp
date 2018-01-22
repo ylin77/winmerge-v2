@@ -126,8 +126,10 @@ BEGIN_MESSAGE_MAP(CImgMergeFrame, CMDIChildWnd)
 	ON_UPDATE_COMMAND_UI(ID_IMG_VIEWDIFFERENCES, OnUpdateImgViewDifferences)
 	ON_COMMAND_RANGE(ID_IMG_ZOOM_25, ID_IMG_ZOOM_800, OnImgZoom)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_IMG_ZOOM_25, ID_IMG_ZOOM_800, OnUpdateImgZoom)
-	ON_COMMAND_RANGE(ID_IMG_OVERLAY_NONE, ID_IMG_OVERLAY_ALPHABLEND, OnImgOverlayMode)
-	ON_UPDATE_COMMAND_UI_RANGE(ID_IMG_OVERLAY_NONE, ID_IMG_OVERLAY_ALPHABLEND, OnUpdateImgOverlayMode)
+	ON_COMMAND_RANGE(ID_IMG_OVERLAY_NONE, ID_IMG_OVERLAY_ALPHABLEND_ANIM, OnImgOverlayMode)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_IMG_OVERLAY_NONE, ID_IMG_OVERLAY_ALPHABLEND_ANIM, OnUpdateImgOverlayMode)
+	ON_COMMAND_RANGE(ID_IMG_DRAGGINGMODE_NONE, ID_IMG_DRAGGINGMODE_ADJUST_OFFSET, OnImgDraggingMode)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_IMG_DRAGGINGMODE_NONE, ID_IMG_DRAGGINGMODE_ADJUST_OFFSET, OnUpdateImgDraggingMode)
 	ON_COMMAND_RANGE(ID_IMG_DIFFBLOCKSIZE_1, ID_IMG_DIFFBLOCKSIZE_32, OnImgDiffBlockSize)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_IMG_DIFFBLOCKSIZE_1, ID_IMG_DIFFBLOCKSIZE_32, OnUpdateImgDiffBlockSize)
 	ON_COMMAND_RANGE(ID_IMG_THRESHOLD_0, ID_IMG_THRESHOLD_64, OnImgThreshold)
@@ -281,10 +283,10 @@ void CImgMergeFrame::DoAutoMerge(int dstPane)
 	m_pImgMergeWindow->FirstConflict();
 
 	AfxMessageBox(
-		string_format_string2(
+		strutils::format_string2(
 			_T("The number of automatically merged changes: %1\nThe number of unresolved conflicts: %2"), 
-			string_format(_T("%d"), autoMergedCount),
-			string_format(_T("%d"), m_pImgMergeWindow->GetConflictCount())).c_str(),
+			strutils::format(_T("%d"), autoMergedCount),
+			strutils::format(_T("%d"), m_pImgMergeWindow->GetConflictCount())).c_str(),
 		MB_ICONINFORMATION);
 }
 
@@ -317,7 +319,7 @@ void CImgMergeFrame::CheckFileChanged(void)
 	{
 		if (IsFileChangedOnDisk(pane))
 		{
-			String msg = string_format_string1(_("Another application has updated file\n%1\nsince WinMerge scanned it last time.\n\nDo you want to reload the file?"), m_filePaths[pane]);
+			String msg = strutils::format_string1(_("Another application has updated file\n%1\nsince WinMerge scanned it last time.\n\nDo you want to reload the file?"), m_filePaths[pane]);
 			if (AfxMessageBox(msg.c_str(), MB_YESNO | MB_ICONWARNING) == IDYES)
 			{
 				OnFileReload();
@@ -348,14 +350,29 @@ void CImgMergeFrame::CreateImgWndStatusBar(CStatusBar &wndStatusBar, CWnd *pwndP
 
 void CImgMergeFrame::OnChildPaneEvent(const IImgMergeWindow::Event& evt)
 {
-	if (evt.eventType == IImgMergeWindow::KEYDOWN && GetAsyncKeyState(VK_SHIFT))
+	if (evt.eventType == IImgMergeWindow::KEYDOWN)
 	{
 		CImgMergeFrame *pFrame = reinterpret_cast<CImgMergeFrame *>(evt.userdata);
-		int nActivePane = pFrame->m_pImgMergeWindow->GetActivePane();
-		int m = GetAsyncKeyState(VK_CONTROL) ? 8 : 1;
-		int dx = (-(evt.keycode == VK_LEFT) + (evt.keycode == VK_RIGHT)) * m;
-		int dy = (-(evt.keycode == VK_UP  ) + (evt.keycode == VK_DOWN )) * m;
-		pFrame->m_pImgMergeWindow->AddImageOffset(nActivePane, dx, dy);
+		switch (evt.keycode)
+		{
+		case VK_PRIOR:
+		case VK_NEXT:
+			::SendMessage(pFrame->m_pImgMergeWindow->GetPaneHWND(evt.pane), WM_VSCROLL, evt.keycode == VK_PRIOR ? SB_PAGEUP : SB_PAGEDOWN, 0);
+			break;
+		case VK_LEFT:
+		case VK_RIGHT:
+		case VK_UP:
+		case VK_DOWN:
+			if (GetAsyncKeyState(VK_SHIFT))
+			{
+				int nActivePane = pFrame->m_pImgMergeWindow->GetActivePane();
+				int m = GetAsyncKeyState(VK_CONTROL) ? 8 : 1;
+				int dx = (-(evt.keycode == VK_LEFT) + (evt.keycode == VK_RIGHT)) * m;
+				int dy = (-(evt.keycode == VK_UP) + (evt.keycode == VK_DOWN)) * m;
+				pFrame->m_pImgMergeWindow->AddImageOffset(nActivePane, dx, dy);
+			}
+			break;
+		}
 	}
 
 /*	if (evt.eventType == IImgMergeWindow::CONTEXTMENU)
@@ -535,6 +552,7 @@ void CImgMergeFrame::LoadOptions()
 	m_pImgMergeWindow->SetShowDifferences(GetOptionsMgr()->GetBool(OPT_CMP_IMG_SHOWDIFFERENCES));
 	m_pImgMergeWindow->SetOverlayMode(static_cast<IImgMergeWindow::OVERLAY_MODE>(GetOptionsMgr()->GetInt(OPT_CMP_IMG_OVERLAYMOVE)));
 	m_pImgMergeWindow->SetOverlayAlpha(GetOptionsMgr()->GetInt(OPT_CMP_IMG_OVERLAYALPHA) / 100.0);
+	m_pImgMergeWindow->SetDraggingMode(static_cast<IImgMergeWindow::DRAGGING_MODE>(GetOptionsMgr()->GetInt(OPT_CMP_IMG_DRAGGING_MODE)));
 	m_pImgMergeWindow->SetZoom(GetOptionsMgr()->GetInt(OPT_CMP_IMG_ZOOM) / 1000.0);
 	m_pImgMergeWindow->SetUseBackColor(GetOptionsMgr()->GetBool(OPT_CMP_IMG_USEBACKCOLOR));
 	COLORREF clrBackColor = GetOptionsMgr()->GetInt(OPT_CMP_IMG_BACKCOLOR);
@@ -550,6 +568,7 @@ void CImgMergeFrame::SaveOptions()
 	GetOptionsMgr()->SaveOption(OPT_CMP_IMG_SHOWDIFFERENCES, m_pImgMergeWindow->GetShowDifferences());
 	GetOptionsMgr()->SaveOption(OPT_CMP_IMG_OVERLAYMOVE, m_pImgMergeWindow->GetOverlayMode());
 	GetOptionsMgr()->SaveOption(OPT_CMP_IMG_OVERLAYALPHA, static_cast<int>(m_pImgMergeWindow->GetOverlayAlpha() * 100));
+	GetOptionsMgr()->SaveOption(OPT_CMP_IMG_DRAGGING_MODE, static_cast<int>(m_pImgMergeWindow->GetDraggingMode()));
 	GetOptionsMgr()->SaveOption(OPT_CMP_IMG_ZOOM, static_cast<int>(m_pImgMergeWindow->GetZoom() * 1000));
 	GetOptionsMgr()->SaveOption(OPT_CMP_IMG_USEBACKCOLOR, m_pImgMergeWindow->GetUseBackColor());
 	RGBQUAD backColor = m_pImgMergeWindow->GetBackColor();
@@ -885,8 +904,8 @@ void CImgMergeFrame::UpdateHeaderSizes()
 		{
 			for (int pane = 0; pane < nPaneCount; pane++)
 			{
-				RECT rc = m_pImgMergeWindow->GetPaneWindowRect(pane);
-				w[pane] = rc.right - rc.left - 4;
+				RECT rc1 = m_pImgMergeWindow->GetPaneWindowRect(pane);
+				w[pane] = rc1.right - rc1.left - 4;
 				if (w[pane]<1) w[pane]=1; // Perry 2003-01-22 (I don't know why this happens)
 			}
 		}
@@ -947,9 +966,9 @@ void CImgMergeFrame::SetTitle(LPCTSTR lpszTitle)
 		}
 		const int nBuffers = m_filePaths.GetSize();
 		if (std::count(&sFileName[0], &sFileName[0] + nBuffers, sFileName[0]) == nBuffers)
-			sTitle = sFileName[0] + string_format(_T(" x %d"), nBuffers);
+			sTitle = sFileName[0] + strutils::format(_T(" x %d"), nBuffers);
 		else
-			sTitle = string_join(&sFileName[0], &sFileName[0] + nBuffers, _T(" - "));
+			sTitle = strutils::join(&sFileName[0], &sFileName[0] + nBuffers, _T(" - "));
 	}
 	CMDIChildWnd::SetTitle(sTitle.c_str());
 	if (m_hWnd)
@@ -1095,19 +1114,22 @@ bool CImgMergeFrame::PromptAndSaveIfNeeded(bool bAllowCancel)
 	{
 		if (bLModified && dlg.m_leftSave == SaveClosingDlg::SAVECLOSING_SAVE)
 		{
-			if (!(bLSaveSuccess = DoFileSave(0)))
+			bLSaveSuccess = DoFileSave(0);
+			if (!bLSaveSuccess)
 				result = false;
 		}
 
 		if (bMModified && dlg.m_middleSave == SaveClosingDlg::SAVECLOSING_SAVE)
 		{
-			if (!(bMSaveSuccess = DoFileSave(1)))
+			bMSaveSuccess = DoFileSave(1);
+			if (!bMSaveSuccess)
 				result = false;
 		}
 
 		if (bRModified && dlg.m_rightSave == SaveClosingDlg::SAVECLOSING_SAVE)
 		{
-			if (!(bRSaveSuccess = DoFileSave(m_pImgMergeWindow->GetPaneCount() - 1)))
+			bRSaveSuccess = DoFileSave(m_pImgMergeWindow->GetPaneCount() - 1);
+			if (!bRSaveSuccess)
 				result = false;
 		}
 	}
@@ -1258,8 +1280,8 @@ void CImgMergeFrame::OnIdleUpdateCmdUI()
 		RGBQUAD color[3];
 		for (int pane = 0; pane < m_pImgMergeWindow->GetPaneCount(); ++pane)
 			color[pane] = m_pImgMergeWindow->GetPixelColor(pane, pt.x, pt.y);
-		double colorDistance01, colorDistance12;
-		colorDistance01 = m_pImgMergeWindow->GetColorDistance(0, 1, pt.x, pt.y);
+		double colorDistance01 = m_pImgMergeWindow->GetColorDistance(0, 1, pt.x, pt.y);
+		double colorDistance12 = 0;
 		if (m_pImgMergeWindow->GetPaneCount() == 3)
 			colorDistance12 = m_pImgMergeWindow->GetColorDistance(1, 2, pt.x, pt.y);
 
@@ -1278,15 +1300,15 @@ void CImgMergeFrame::OnIdleUpdateCmdUI()
 				pt.y < m_pImgMergeWindow->GetImageHeight(pane))
 			{
 				POINT ptOffset = m_pImgMergeWindow->GetImageOffset(pane);
-				text += string_format(_T("Pt:(%d,%d) RGBA:(%d,%d,%d,%d) "), pt.x - ptOffset.x, pt.y - ptOffset.y,
+				text += strutils::format(_T("Pt:(%d,%d) RGBA:(%d,%d,%d,%d) "), pt.x - ptOffset.x, pt.y - ptOffset.y,
 					color[pane].rgbRed, color[pane].rgbGreen, color[pane].rgbBlue, color[pane].rgbReserved);
 				if (pane == 1 && m_pImgMergeWindow->GetPaneCount() == 3)
-					text += string_format(_T("Dist:%g,%g "), colorDistance01, colorDistance12);
+					text += strutils::format(_T("Dist:%g,%g "), colorDistance01, colorDistance12);
 				else
-					text += string_format(_T("Dist:%g "), colorDistance01);
+					text += strutils::format(_T("Dist:%g "), colorDistance01);
 			}
 
-			text += string_format(_T("Page:%d/%d Zoom:%d%% %dx%dpx %dbpp"), 
+			text += strutils::format(_T("Page:%d/%d Zoom:%d%% %dx%dpx %dbpp"), 
 					m_pImgMergeWindow->GetCurrentPage(pane) + 1,
 					m_pImgMergeWindow->GetPageCount(pane),
 					static_cast<int>(m_pImgMergeWindow->GetZoom() * 100),
@@ -1325,7 +1347,8 @@ void CImgMergeFrame::OnUpdateStatusNum(CCmdUI* pCmdUI)
 	else if (m_pImgMergeWindow->GetCurrentDiffIndex() < 0)
 	{
 		s = theApp.LoadString(nDiffs == 1 ? IDS_1_DIFF_FOUND : IDS_NO_DIFF_SEL_FMT);
-		string_replace(s, _T("%1"), _itot(nDiffs, sCnt, 10));
+		_itot_s(nDiffs, sCnt, 10);
+		strutils::replace(s, _T("%1"), sCnt);
 	}
 	
 	// There are differences and diff selected
@@ -1334,8 +1357,10 @@ void CImgMergeFrame::OnUpdateStatusNum(CCmdUI* pCmdUI)
 	{
 		s = theApp.LoadString(IDS_DIFF_NUMBER_STATUS_FMT);
 		const int signInd = m_pImgMergeWindow->GetCurrentDiffIndex();
-		string_replace(s, _T("%1"), _itot(signInd + 1, sIdx, 10));
-		string_replace(s, _T("%2"), _itot(nDiffs, sCnt, 10));
+		_itot_s(signInd + 1, sIdx, 10);
+		strutils::replace(s, _T("%1"), sIdx);
+		_itot_s(nDiffs, sCnt, 10);
+		strutils::replace(s, _T("%2"), sCnt);
 	}
 	pCmdUI->SetText(s.c_str());
 }
@@ -1460,7 +1485,18 @@ void CImgMergeFrame::OnUpdateLastdiff(CCmdUI* pCmdUI)
  */
 void CImgMergeFrame::OnNextdiff()
 {
-	m_pImgMergeWindow->NextDiff();
+	if (m_pImgMergeWindow->GetCurrentDiffIndex() != m_pImgMergeWindow->GetDiffCount() - 1)
+		m_pImgMergeWindow->NextDiff();
+	else if (m_pImgMergeWindow->GetCurrentMaxPage() != m_pImgMergeWindow->GetMaxPageCount() - 1)
+	{
+		if (AfxMessageBox(_("Do you want to move to the next page?").c_str(), MB_YESNO | MB_DONT_ASK_AGAIN) == IDYES)
+		{
+			m_pImgMergeWindow->SetCurrentPageAll(m_pImgMergeWindow->GetCurrentMaxPage() + 1);
+			UpdateLastCompareResult();
+		}
+	}
+	else if (m_pDirDoc)
+		m_pDirDoc->MoveToNextDiff(this);
 }
 
 /**
@@ -1468,10 +1504,15 @@ void CImgMergeFrame::OnNextdiff()
  */
 void CImgMergeFrame::OnUpdateNextdiff(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(
+	bool enabled =
+		m_pImgMergeWindow->GetCurrentMaxPage() < m_pImgMergeWindow->GetMaxPageCount() - 1 ||
 		m_pImgMergeWindow->GetNextDiffIndex() >= 0 ||
-		(m_pImgMergeWindow->GetDiffCount() > 0 && m_pImgMergeWindow->GetCurrentDiffIndex() == -1)
-	);
+		(m_pImgMergeWindow->GetDiffCount() > 0 && m_pImgMergeWindow->GetCurrentDiffIndex() == -1);
+
+	if (!enabled && m_pDirDoc)
+		enabled = m_pDirDoc->MoveableToNextDiff();
+
+	pCmdUI->Enable(enabled);
 }
 
 /**
@@ -1479,7 +1520,20 @@ void CImgMergeFrame::OnUpdateNextdiff(CCmdUI* pCmdUI)
  */
 void CImgMergeFrame::OnPrevdiff()
 {
-	m_pImgMergeWindow->PrevDiff();
+	if (m_pImgMergeWindow->GetCurrentDiffIndex() > 0)
+	{
+		m_pImgMergeWindow->PrevDiff();
+	}
+	else if (m_pImgMergeWindow->GetCurrentMaxPage() != 0)
+	{
+		if (AfxMessageBox(_("Do you want to move to the previous page?").c_str(), MB_YESNO | MB_DONT_ASK_AGAIN) == IDYES)
+		{
+			m_pImgMergeWindow->SetCurrentPageAll(m_pImgMergeWindow->GetCurrentMaxPage() - 1);
+			UpdateLastCompareResult();
+		}
+	}
+	else if (m_pDirDoc)
+		m_pDirDoc->MoveToPrevDiff(this);
 }
 
 /**
@@ -1487,10 +1541,15 @@ void CImgMergeFrame::OnPrevdiff()
  */
 void CImgMergeFrame::OnUpdatePrevdiff(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(
+	bool enabled =
+		m_pImgMergeWindow->GetCurrentMaxPage() > 0 ||
 		m_pImgMergeWindow->GetPrevDiffIndex() >= 0 ||
-		(m_pImgMergeWindow->GetDiffCount() > 0 && m_pImgMergeWindow->GetCurrentDiffIndex() == -1)
-	);
+		(m_pImgMergeWindow->GetDiffCount() > 0 && m_pImgMergeWindow->GetCurrentDiffIndex() == -1);
+
+	if (!enabled && m_pDirDoc)
+		enabled = m_pDirDoc->MoveableToPrevDiff();
+
+	pCmdUI->Enable(enabled);
 }
 
 /**
@@ -1763,12 +1822,25 @@ void CImgMergeFrame::OnImgOverlayMode(UINT nId)
 		m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_XOR);
 	else if (nId == ID_IMG_OVERLAY_ALPHABLEND)
 		m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_ALPHABLEND);
+	else if (nId == ID_IMG_OVERLAY_ALPHABLEND_ANIM)
+		m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_ALPHABLEND_ANIM);
 	SaveOptions();
 }
 
 void CImgMergeFrame::OnUpdateImgOverlayMode(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetRadio((pCmdUI->m_nID - ID_IMG_OVERLAY_NONE) == m_pImgMergeWindow->GetOverlayMode());
+}
+
+void CImgMergeFrame::OnImgDraggingMode(UINT nId)
+{
+	m_pImgMergeWindow->SetDraggingMode(static_cast<IImgMergeWindow::DRAGGING_MODE>(nId - ID_IMG_DRAGGINGMODE_NONE));
+	SaveOptions();
+}
+
+void CImgMergeFrame::OnUpdateImgDraggingMode(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetRadio((pCmdUI->m_nID - ID_IMG_DRAGGINGMODE_NONE) == static_cast<int>(m_pImgMergeWindow->GetDraggingMode()));
 }
 
 void CImgMergeFrame::OnImgDiffBlockSize(UINT nId)
@@ -1859,8 +1931,8 @@ void CImgMergeFrame::OnImgUseBackColor()
 		if (dialog.DoModal() == IDOK)
 		{
 			COLORREF clrBackColor = dialog.GetColor();
-			RGBQUAD backColor = {GetBValue(clrBackColor), GetGValue(clrBackColor), GetRValue(clrBackColor)};
-			m_pImgMergeWindow->SetBackColor(backColor);
+			RGBQUAD backColor1 = {GetBValue(clrBackColor), GetGValue(clrBackColor), GetRValue(clrBackColor)};
+			m_pImgMergeWindow->SetBackColor(backColor1);
 			m_pImgMergeWindow->SetUseBackColor(bUseBackColor);
 		}
 	}
@@ -1889,21 +1961,21 @@ bool CImgMergeFrame::GenerateReport(const String& sFileName) const
 	for (int i = 0; i < m_pImgMergeWindow->GetPaneCount(); ++i)
 	{
 		imgfilepath[i] = ucr::toTString(m_pImgMergeWindow->GetFileName(i));
-		diffimg_filename[i] = string_format(_T("%s/%d.png"), imgdir.c_str(), i + 1);
-		m_pImgMergeWindow->SaveDiffImageAs(i, ucr::toUTF16(string_format(_T("%s\\%d.png"), imgdir_full.c_str(), i + 1)).c_str());
+		diffimg_filename[i] = strutils::format(_T("%s/%d.png"), imgdir.c_str(), i + 1);
+		m_pImgMergeWindow->SaveDiffImageAs(i, ucr::toUTF16(strutils::format(_T("%s\\%d.png"), imgdir_full.c_str(), i + 1)).c_str());
 	}
 
 	UniStdioFile file;
 	if (!file.Open(sFileName, _T("wt")))
 	{
 		String errMsg = GetSysError(GetLastError());
-		String msg = string_format_string1(
+		String msg = strutils::format_string1(
 			_("Error creating the report:\n%1"), errMsg);
 		AfxMessageBox(msg.c_str(), MB_OK | MB_ICONSTOP);
 		return false;
 	}
 
-	file.SetCodepage(CP_UTF8);
+	file.SetCodepage(ucr::CP_UTF_8);
 
 	file.WriteString(
 		_T("<!DOCTYPE html>\n")
@@ -1924,13 +1996,13 @@ bool CImgMergeFrame::GenerateReport(const String& sFileName) const
 		_T("<table>\n")
 		_T("<tr>\n"));
 	for (int i = 0; i < m_pImgMergeWindow->GetPaneCount(); ++i)
-		file.WriteString(string_format(_T("<th class=\"title\">%s</th>\n"), imgfilepath[i].c_str()));
+		file.WriteString(strutils::format(_T("<th class=\"title\">%s</th>\n"), imgfilepath[i].c_str()));
 	file.WriteString(
 		_T("</tr>\n")
 		_T("<tr>\n"));
 	for (int i = 0; i < m_pImgMergeWindow->GetPaneCount(); ++i)
 		file.WriteString(
-			string_format(_T("<td><div class=\"img\"><img src=\"%s\" alt=\"%s\"></div></td>\n"),
+			strutils::format(_T("<td><div class=\"img\"><img src=\"%s\" alt=\"%s\"></div></td>\n"),
 			diffimg_filename[i].c_str(), diffimg_filename[i].c_str()));
 	file.WriteString(
 		_T("</tr>\n")

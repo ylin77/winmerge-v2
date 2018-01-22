@@ -35,6 +35,8 @@ public:
 	bool  m_bPreserveFiletime;
 	bool  m_bShowSelectFolderOnStartup;
 	bool  m_bCloseWithOK;
+	CWinThread *m_pLoadLanguagesThread;
+	std::vector<std::pair<LANGID, String>> m_langs;
 	CComboBox	m_ctlLangList;
 	//}}AFX_DATA
 
@@ -48,14 +50,14 @@ public:
 
 // Implementation
 protected:
+	static UINT LoadLanguagesThreadProc(void *pParam);
 	virtual BOOL OnInitDialog();
 
 	// Generated message map functions
 	//{{AFX_MSG(PropGeneral)
 	afx_msg void OnResetAllMessageBoxes();
+	afx_msg LRESULT OnLoadLanguages(WPARAM, LPARAM);
+	afx_msg void OnDestroy();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Developer Studio will insert additional declarations immediately before the previous line.

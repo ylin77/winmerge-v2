@@ -8,6 +8,7 @@
 
 #include "ColorButton.h"
 #include "OptionsPanel.h"
+#include <array>
 
 class COptionsMgr;
 
@@ -78,7 +79,7 @@ protected:
 	void UpdateTextColorButtonsState();
 	void SetColorScheme(int scheme);
 
-	COLORREF m_cCustColors[CustomColorsAmount];
+	std::array<COLORREF, CustomColorsAmount> m_cCustColors;
 
 	// Generated message map functions
 	//{{AFX_MSG(PropMergeColors)
@@ -117,6 +118,3 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ will insert additional declarations immediately before the previous line.

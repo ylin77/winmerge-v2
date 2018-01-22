@@ -44,6 +44,8 @@
 #include "OptionsMgr.h"
 #include "FileOrFolderSelect.h"
 #include "DiffWrapper.h"
+#include "SyntaxColors.h"
+#include "Merge.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -59,46 +61,18 @@ static int Try(HRESULT hr, UINT type = MB_OKCANCEL|MB_ICONSTOP);
  */
 static void UpdateDiffItem(int nBuffers, DIFFITEM &di, CDiffContext *pCtxt)
 {
-	di.diffcode.diffcode |= DIFFCODE::SIDEFLAGS;
+	di.diffcode.setSideNone();
 	for (int nBuffer = 0; nBuffer < nBuffers; nBuffer++)
 	{
 		di.diffFileInfo[nBuffer].ClearPartial();
-		di.diffFileInfo[nBuffer].ClearPartial();
-		if (!pCtxt->UpdateInfoFromDiskHalf(di, nBuffer))
-		{
-			if (nBuffer == 0)
-				di.diffcode.diffcode &= ~DIFFCODE::FIRST;
-			else if (nBuffer == 1)
-				di.diffcode.diffcode &= ~DIFFCODE::SECOND;
-			else
-				di.diffcode.diffcode &= ~DIFFCODE::THIRD;
-		}
+		if (pCtxt->UpdateInfoFromDiskHalf(di, nBuffer))
+			di.diffcode.diffcode |= DIFFCODE::FIRST << nBuffers;
 	}
-	// 1. Clear flags
-	di.diffcode.diffcode &= ~(DIFFCODE::TEXTFLAGS | DIFFCODE::COMPAREFLAGS);
-	// 2. Process unique files
-	// We must compare unique files to itself to detect encoding
-	if (!di.diffcode.existAll(nBuffers))
-	{
-		int compareMethod = pCtxt->GetCompareMethod();
-		if (compareMethod != CMP_DATE && compareMethod != CMP_DATE_SIZE &&
-			compareMethod != CMP_SIZE)
-		{
-			di.diffcode.diffcode |= DIFFCODE::SAME;
-			FolderCmp folderCmp;
-			int diffCode = folderCmp.prepAndCompareFiles(pCtxt, di);
-			// Add possible binary flag for unique items
-			if (diffCode & DIFFCODE::BIN)
-				di.diffcode.diffcode |= DIFFCODE::BIN;
-		}
-	}
-	// 3. Compare two files
-	else
-	{
-		// Really compare
-		FolderCmp folderCmp;
-		di.diffcode.diffcode |= folderCmp.prepAndCompareFiles(pCtxt, di);
-	}
+	// Clear flags
+	di.diffcode.diffcode &= ~(DIFFCODE::TEXTFLAGS | DIFFCODE::COMPAREFLAGS | DIFFCODE::COMPAREFLAGS3WAY);
+	// Really compare
+	FolderCmp folderCmp;
+	di.diffcode.diffcode |= folderCmp.prepAndCompareFiles(pCtxt, di);
 }
 
 /**
@@ -564,7 +538,7 @@ void CHexMergeDoc::CheckFileChanged(void)
 	{
 		if (m_pView[pane]->IsFileChangedOnDisk(m_filePaths[pane].c_str()))
 		{
-			String msg = string_format_string1(_("Another application has updated file\n%1\nsince WinMerge scanned it last time.\n\nDo you want to reload the file?"), m_filePaths[pane]);
+			String msg = strutils::format_string1(_("Another application has updated file\n%1\nsince WinMerge scanned it last time.\n\nDo you want to reload the file?"), m_filePaths[pane]);
 			if (AfxMessageBox(msg.c_str(), MB_YESNO | MB_ICONWARNING) == IDYES)
 			{
 				OnFileReload();
@@ -629,6 +603,11 @@ static void Customize(IHexEditorWindow::Colors *colors)
 	colors->iSelDiffTextColorValue = pOptionsMgr->GetInt(OPT_CLR_SELECTED_DIFF_TEXT);
 	if (colors->iSelDiffTextColorValue == 0xFFFFFFFF)
 		colors->iSelDiffTextColorValue = 0;
+	SyntaxColors *pSyntaxColors = theApp.GetMainSyntaxColors();
+	colors->iTextColorValue = pSyntaxColors->GetColor(COLORINDEX_NORMALTEXT);
+	colors->iBkColorValue = pSyntaxColors->GetColor(COLORINDEX_BKGND);
+	colors->iSelTextColorValue = pSyntaxColors->GetColor(COLORINDEX_SELTEXT);
+	colors->iSelBkColorValue = pSyntaxColors->GetColor(COLORINDEX_SELBKGND);
 }
 
 /**
@@ -668,9 +647,9 @@ void CHexMergeDoc::SetTitle(LPCTSTR lpszTitle)
 		for (int nBuffer = 0; nBuffer < m_filePaths.GetSize(); nBuffer++)
 			sFileName[nBuffer] = !m_strDesc[nBuffer].empty() ? m_strDesc[nBuffer] : paths::FindFileName(m_filePaths[nBuffer]);
 		if (std::count(&sFileName[0], &sFileName[0] + m_nBuffers, sFileName[0]) == m_nBuffers)
-			sTitle = sFileName[0] + string_format(_T(" x %d"), m_nBuffers);
+			sTitle = sFileName[0] + strutils::format(_T(" x %d"), m_nBuffers);
 		else
-			sTitle = string_join(&sFileName[0], &sFileName[0] + m_nBuffers, _T(" - "));
+			sTitle = strutils::join(&sFileName[0], &sFileName[0] + m_nBuffers, _T(" - "));
 	}
 	CDocument::SetTitle(sTitle.c_str());
 }

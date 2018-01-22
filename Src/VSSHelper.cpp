@@ -40,7 +40,7 @@ bool VSSHelper::SetProjectBase(const String& strPath)
 		return false;
 
 	m_strVssProjectBase = strPath;
-	string_replace(m_strVssProjectBase, _T("/"), _T("\\"));
+	strutils::replace(m_strVssProjectBase, _T("/"), _T("\\"));
 
 	// Check if m_strVssProjectBase has leading $\\, if not put them in:
 	if (m_strVssProjectBase[0] != '$' && m_strVssProjectBase[1] != '\\')
@@ -64,7 +64,7 @@ bool VSSHelper::ReLinkVCProj(const String& strSavePath, String& sError)
 
 	String ext;
 	paths::SplitFilename(strSavePath, NULL, NULL, &ext);
-	String strExt = string_makelower(ext);
+	String strExt = strutils::makelower(ext);
 	if (strExt == _T("vcproj") || strExt == _T("sln"))
 	{
 		bool bVCPROJ = false;
@@ -93,11 +93,11 @@ bool VSSHelper::ReLinkVCProj(const String& strSavePath, String& sError)
 		{
 			if (hfile == INVALID_HANDLE_VALUE)
 			{
-				sError = string_format(_T("CMainFrame::ReLinkVCProj() ")
+				sError = strutils::format(_T("CMainFrame::ReLinkVCProj() ")
 					_T("- failed to open file: %s"), strSavePath.c_str());
 				LogErrorString(sError);
 				String errMsg = GetSysError(GetLastError());
-				sError = string_format_string2(_("Cannot open file\n%1\n\n%2"), errMsg, strSavePath);
+				sError = strutils::format_string2(_("Cannot open file\n%1\n\n%2"), errMsg, strSavePath);
 			}
 			else
 			{
@@ -105,11 +105,11 @@ bool VSSHelper::ReLinkVCProj(const String& strSavePath, String& sError)
 			}
 			if (tfile == INVALID_HANDLE_VALUE)
 			{
-				sError = string_format(_T("CMainFrame::ReLinkVCProj() ")
+				sError = strutils::format(_T("CMainFrame::ReLinkVCProj() ")
 					_T("- failed to open temporary file: %s"), tempFile.c_str());
 				LogErrorString(sError);
 				String errMsg = GetSysError(GetLastError());
-				sError = string_format_string2(_("Cannot open file\n%1\n\n%2"), errMsg, strSavePath);
+				sError = strutils::format_string2(_("Cannot open file\n%1\n\n%2"), errMsg, strSavePath);
 			}
 			else
 			{
@@ -125,7 +125,7 @@ bool VSSHelper::ReLinkVCProj(const String& strSavePath, String& sError)
 	
 		while (succeed && GetWordFromFile(hfile, buffer, nBufferSize, charset))
 		{
-			if (!WriteFile(tfile, buffer, _tcslen(buffer), &numwritten, NULL))
+			if (!WriteFile(tfile, buffer, lstrlen(buffer), &numwritten, NULL))
 				succeed = false;
 			if (bVCPROJ)
 			{
@@ -140,7 +140,7 @@ bool VSSHelper::ReLinkVCProj(const String& strSavePath, String& sError)
 				//find sccprojectname inside this string
 				if (_tcsstr(buffer, _T("SccProjectUniqueName")) == buffer)
 				{
-					if (!GetSLNProjUniqueName(hfile, tfile, buffer))
+					if (!GetSLNProjUniqueName(hfile, tfile, buffer, nBufferSize))
 						succeed = false;
 				}
 				else if (_tcsstr(buffer, _T("SccProjectName")) == buffer)
@@ -167,7 +167,7 @@ bool VSSHelper::ReLinkVCProj(const String& strSavePath, String& sError)
 		else
 		{
 			String errMsg = GetSysError(GetLastError());
-			sError = string_format_string2(_("Cannot open file\n%1\n\n%2"), errMsg, strSavePath);
+			sError = strutils::format_string2(_("Cannot open file\n%1\n\n%2"), errMsg, strSavePath);
 			return false;
 		}
 	}
@@ -179,29 +179,29 @@ void VSSHelper::GetFullVSSPath(const String& strSavePath, bool & bVCProj)
 	String ext;
 	String path;
 	paths::SplitFilename(strSavePath, &path, NULL, &ext);
-	String strExt = string_makelower(ext); 
+	String strExt = strutils::makelower(ext); 
 	if (strExt == _T("vcproj"))
 		bVCProj = true;
 
 	String savepath(strSavePath);
-	string_replace(savepath, _T("/"), _T("\\"));
-	string_replace(m_strVssProjectBase, _T("/"), _T("\\"));
+	strutils::replace(savepath, _T("/"), _T("\\"));
+	strutils::replace(m_strVssProjectBase, _T("/"), _T("\\"));
 
 	//check if m_strVssProjectBase has leading $\\, if not put them in:
 	if (m_strVssProjectBase[0] != '$' && m_strVssProjectBase[1] != '\\')
 		m_strVssProjectBase.insert(0, _T("$\\"));
 
-	savepath = string_makelower(savepath);
-	m_strVssProjectBase = string_makelower(m_strVssProjectBase);
+	savepath = strutils::makelower(savepath);
+	m_strVssProjectBase = strutils::makelower(m_strVssProjectBase);
 
 	//take out last '\\'
-	int nLen = m_strVssProjectBase.size();
+	size_t nLen = m_strVssProjectBase.size();
 	if (paths::EndsWithSlash(m_strVssProjectBase))
 		m_strVssProjectBase.resize(nLen - 1);
 
 	String strSearch = m_strVssProjectBase.c_str() + 2; // Don't compare first 2
-	int index = strSavePath.find(strSearch); //Search for project base path
-	if (index > -1)
+	size_t index = strSavePath.find(strSearch); //Search for project base path
+	if (index != String::npos)
 	{
 		index++;
 		m_strVssProjectFull = savepath.c_str() + index + strSearch.length();
@@ -216,7 +216,7 @@ void VSSHelper::GetFullVSSPath(const String& strSavePath, bool & bVCProj)
 
 	//if sln file, we need to replace ' '  with _T("\\u0020")
 	if (!bVCProj)
-		string_replace(m_strVssProjectFull, _T(" "), _T("\\u0020"));
+		strutils::replace(m_strVssProjectFull, _T(" "), _T("\\u0020"));
 }
 
 /**
@@ -344,13 +344,13 @@ bool VSSHelper::GetVCProjName(HANDLE hFile, HANDLE tFile) const
 	//nab the equals sign
 	if (!GetWordFromFile(hFile, buffer, sizeof(buffer)/sizeof(buffer[0]), _T("=")))
 		return false;
-	if (!WriteFile(tFile, buffer, _tcslen(buffer),
+	if (!WriteFile(tFile, buffer, lstrlen(buffer),
 			&dwNumWritten, NULL))
 		return false;
 
 	String stemp = _T("\"&quot;") + m_strVssProjectFull + 
 		_T("&quot;");
-	if (!WriteFile(tFile, stemp.c_str(), stemp.size(),
+	if (!WriteFile(tFile, stemp.c_str(), static_cast<DWORD>(stemp.size()),
 			&dwNumWritten, NULL))
 		return false;
 
@@ -364,13 +364,13 @@ bool VSSHelper::GetVCProjName(HANDLE hFile, HANDLE tFile) const
 		if (!WriteFile(tFile, _T("\""), 1, &dwNumWritten, NULL))
 			return false;
 	}
-	if (!WriteFile(tFile, buffer, _tcslen(buffer), &dwNumWritten, NULL))
+	if (!WriteFile(tFile, buffer, lstrlen(buffer), &dwNumWritten, NULL))
 		return false;
 
 	return true;
 }
 
-bool VSSHelper::GetSLNProjUniqueName(HANDLE hFile, HANDLE tFile, TCHAR * buf) const
+bool VSSHelper::GetSLNProjUniqueName(HANDLE hFile, HANDLE tFile, TCHAR * buf, size_t nBufSize) const
 {
 	TCHAR buffer[1024] = {0};
 	DWORD dwNumWritten = 0;
@@ -382,7 +382,7 @@ bool VSSHelper::GetSLNProjUniqueName(HANDLE hFile, HANDLE tFile, TCHAR * buf) co
 	//nab until next no space, and no =
 	if (!GetWordFromFile(hFile, buffer, sizeof(buffer)/sizeof(buffer[0]), _T(" =")))
 		return false;
-	if (!WriteFile(tFile, buffer, _tcslen(buffer), &dwNumWritten, NULL))
+	if (!WriteFile(tFile, buffer, lstrlen(buffer), &dwNumWritten, NULL))
 		return false;
 	//nab word
 	if (!GetWordFromFile(hFile, buffer, sizeof(buffer)/sizeof(buffer[0]), _T("\\\n.")))
@@ -390,14 +390,14 @@ bool VSSHelper::GetSLNProjUniqueName(HANDLE hFile, HANDLE tFile, TCHAR * buf) co
 	while (!_tcsstr(buffer, _T(".")))
 	{						
 		if (buffer[0] != '\\')
-			_tcsncat(buf, buffer, _tcslen(buffer));
+			_tcsncat_s(buf, nBufSize, buffer, _tcslen(buffer));
 
-		if (!WriteFile(tFile, buffer, _tcslen(buffer), &dwNumWritten, NULL))
+		if (!WriteFile(tFile, buffer, lstrlen(buffer), &dwNumWritten, NULL))
 			return false;
 		if (!GetWordFromFile(hFile, buffer, sizeof(buffer)/sizeof(buffer[0]), _T("\\\n.")))
 			return false;
 	}
-	if (!WriteFile(tFile, buffer, _tcslen(buffer), &dwNumWritten, NULL))
+	if (!WriteFile(tFile, buffer, lstrlen(buffer), &dwNumWritten, NULL))
 		return false;
 
 	return true;
@@ -424,15 +424,15 @@ bool VSSHelper::GetSLNProjName(HANDLE hFile, HANDLE tFile, TCHAR * buf) const
 			else
 				capp += *pc;
 		}
-		capp = string_makelower(capp);
+		capp = strutils::makelower(capp);
 
 		//nab until the no space, and no =
 		if (!GetWordFromFile(hFile, buffer, sizeof(buffer)/sizeof(buffer[0]), _T(" =")))
 			return false;
-		if (!WriteFile(tFile, buffer, _tcslen(buffer), &dwNumWritten, NULL))
+		if (!WriteFile(tFile, buffer, lstrlen(buffer), &dwNumWritten, NULL))
 			return false;
 		String stemp = _T("\\u0022") + m_strVssProjectFull + capp + _T("\\u0022");
-		if (!WriteFile(tFile, stemp.c_str(), stemp.size(),
+		if (!WriteFile(tFile, stemp.c_str(), static_cast<DWORD>(stemp.size()),
 				&dwNumWritten, NULL))
 			return false;
 		

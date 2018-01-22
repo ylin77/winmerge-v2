@@ -49,12 +49,14 @@ struct DIFFCODE
 		// and each set of flags is in a different hex digit
 		// to make debugging easier
 		// These can always be packed down in the future
-		TEXTFLAGS=0x7, TEXT=0x1, BINSIDE1=0x2, BINSIDE2=0x3, BIN=0x4,
-		TYPEFLAGS=0x30, FILE=0x10, DIR=0x20,
+		TEXTFLAGS=0x1F, TEXT=0x1, BIN=0x2, BINSIDE1=0x4, BINSIDE2=0x8, BINSIDE3=0x10,
+		TYPEFLAGS=0x60, FILE=0x20, DIR=0x40,
 		SIDEFLAGS=0x700, FIRST=0x100, SECOND=0x200, THIRD=0x400, BOTH=0x300, ALL=0x700,
 		COMPAREFLAGS=0x7000, NOCMP=0x0000, SAME=0x1000, DIFF=0x2000, CMPERR=0x3000, CMPABORT=0x4000,
+		COMPAREFLAGS3WAY=0x18000, DIFFALL=0x0000, DIFF1STONLY=0x8000, DIFF2NDONLY=0x10000, DIFF3RDONLY=0x18000,
 		FILTERFLAGS=0x20000, INCLUDED=0x00000, SKIPPED=0x20000,
 		SCANFLAGS=0x100000, NEEDSCAN=0x100000,
+		THREEWAYFLAGS=0x200000, THREEWAY=0x200000,
 	};
 
 	unsigned diffcode;
@@ -81,17 +83,10 @@ public:
 	bool isDirectory() const { return Check(diffcode, DIFFCODE::TYPEFLAGS, DIFFCODE::DIR); }
 	// left/right
 	bool isSideFirstOnly() const { return CheckSide(diffcode, DIFFCODE::FIRST); }
-	bool isSideLeftOnlyOrBoth() const { return isSideFirstOnly() || isSideBoth(); }
-	void setSideFirstOnly() { SetSide(DIFFCODE::FIRST); }
 	bool isSideSecondOnly() const { return CheckSide(diffcode, DIFFCODE::SECOND); }
-	bool isSideRightOnlyOrBoth() const { return isSideSecondOnly() || isSideBoth(); }
-	void setSideSecondOnly() { SetSide(DIFFCODE::SECOND); }
 	bool isSideThirdOnly() const { return CheckSide(diffcode, DIFFCODE::THIRD); }
-	void setSideThirdOnly() { SetSide(DIFFCODE::THIRD); }
 	bool isSideBoth() const { return CheckSide(diffcode, DIFFCODE::BOTH); }
-	void setSideBoth() { SetSide(DIFFCODE::BOTH); }
 	bool isSideAll() const { return CheckSide(diffcode, DIFFCODE::ALL); }
-	void setSideAll() { SetSide(DIFFCODE::ALL); }
 	void setSideNone() { SetSide(0); }
 	void setSideFlag(int nIndex)
 	{
@@ -134,9 +129,9 @@ public:
 		default: return 0;
 		}
 	}
-	bool existAll(int nDirs) const
+	bool existAll() const
 	{
-		if (nDirs == 2)
+		if ((diffcode & DIFFCODE::THREEWAY) == 0)
 			return (existsFirst() && existsSecond());
 		else
 			return (existsFirst() && existsSecond() && existsThird());
@@ -145,7 +140,7 @@ public:
 	// compare result
 	bool isResultSame() const { return CheckCompare(diffcode, DIFFCODE::SAME); }
 	bool isResultDiff() const { return (CheckCompare(diffcode, DIFFCODE::DIFF) && !isResultFiltered() &&
-			existsFirst() && existsSecond()); } /* FIXME: 3-pane */
+			existAll()); }
 	static bool isResultError(unsigned code) { return CheckCompare(code, DIFFCODE::CMPERR); }
 	bool isResultError() const { return isResultError(diffcode); }
 	static bool isResultAbort(unsigned code) { return CheckCompare(code, DIFFCODE::CMPABORT); }
@@ -154,11 +149,7 @@ public:
 	bool isResultFiltered() const { return CheckFilter(diffcode, DIFFCODE::SKIPPED); }
 	// type
 	bool isText() const { return Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::TEXT); }
-	void setText() { Set(DIFFCODE::TEXTFLAGS, DIFFCODE::TEXT); }
-	bool isBin() const { return Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BIN) ||
-			Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BINSIDE1) ||
-			Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BINSIDE2); }
-	void setBin() { Set(DIFFCODE::TEXTFLAGS, DIFFCODE::BIN); }
+	bool isBin() const { return (diffcode & DIFFCODE::BIN) != 0; }
 	// rescan
 	bool isScanNeeded() const { return ((diffcode & DIFFCODE::SCANFLAGS) == DIFFCODE::NEEDSCAN); }
 
@@ -203,8 +194,6 @@ struct DIFFITEM : ListEntry
 
 	bool isEmpty() const { return this == &emptyitem; }
 	String getFilepath(int nIndex, const String &sRoot) const;
-	String getLeftFilepath(const String &sLeftRoot) const;
-	String getRightFilepath(const String &sRightRoot) const;
 	int GetDepth() const;
 	bool IsAncestor(const DIFFITEM *pdi) const;
 	bool HasChildren() const;

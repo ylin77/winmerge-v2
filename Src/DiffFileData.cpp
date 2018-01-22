@@ -71,7 +71,7 @@ bool DiffFileData::DoOpenFiles()
 		// Actual paths are m_FileLocation[i].filepath
 		// but these are often temporary files
 		// Displayable (original) paths are m_sDisplayFilepath[i]
-		m_inf[i].name = strdup(ucr::toSystemCP(m_sDisplayFilepath[i]).c_str());
+		m_inf[i].name = _strdup(ucr::toSystemCP(m_sDisplayFilepath[i]).c_str());
 		if (m_inf[i].name == NULL)
 			return false;
 
@@ -81,8 +81,8 @@ bool DiffFileData::DoOpenFiles()
 		if (m_inf[i].desc == 0)
 		{
 #ifdef _WIN32
-			m_inf[i].desc = _topen(m_FileLocation[i].filepath.c_str(),
-					O_RDONLY | O_BINARY, _S_IREAD);
+			_tsopen_s(&m_inf[i].desc, m_FileLocation[i].filepath.c_str(),
+					O_RDONLY | O_BINARY, _SH_DENYWR, _S_IREAD);
 #else
 			m_inf[i].desc = open(m_FileLocation[i].filepath.c_str(), O_RDONLY);
 #endif
@@ -92,7 +92,7 @@ bool DiffFileData::DoOpenFiles()
 
 		// Get file stats (diffutils uses these)
 #ifdef _WIN32
-		if (_fstat(m_inf[i].desc, &m_inf[i].stat) != 0)
+		if (myfstat(m_inf[i].desc, &m_inf[i].stat) != 0)
 #else
 		if (fstat(m_inf[i].desc, &m_inf[i].stat) != 0)
 #endif
@@ -100,7 +100,7 @@ bool DiffFileData::DoOpenFiles()
 			return false;
 		}
 		
-		if (string_compare_nocase(m_FileLocation[0].filepath,
+		if (strutils::compare_nocase(m_FileLocation[0].filepath,
 				m_FileLocation[1].filepath) == 0)
 		{
 			m_inf[1].desc = m_inf[0].desc;
@@ -134,7 +134,7 @@ void DiffFileData::Reset()
 
 		if (m_inf[i].desc > 0)
 		{
-			close(m_inf[i].desc);
+			_close(m_inf[i].desc);
 		}
 		m_inf[i].desc = 0;
 		memset(&m_inf[i], 0, sizeof(m_inf[i]));
@@ -158,15 +158,15 @@ bool DiffFileData::Filepath_Transform(bool bForceUTF8,
 	// if a prediffer fails, we consider it is not the good one, that's all
 	// FileTransform_Prediffing returns FALSE only if the prediffer works, 
 	// but the data can not be saved to disk (no more place ??)
-	if (!FileTransform_Prediffing(infoPrediffer, filepathTransformed, filteredFilenames, bMayOverwrite))
+	if (!FileTransform::Prediffing(infoPrediffer, filepathTransformed, filteredFilenames, bMayOverwrite))
 		return false;
 
 	if ((encoding.m_unicoding && encoding.m_unicoding != ucr::UTF8) || bForceUTF8)
 	{
 		// fourth step : prepare for diffing
 		// may overwrite if we've already copied to temp file
-		bool bMayOverwrite = 0 != string_compare_nocase(filepathTransformed, filepath);
-		if (!FileTransform_AnyCodepageToUTF8(encoding.m_codepage, filepathTransformed, bMayOverwrite))
+		bool bMayOverwrite1 = 0 != strutils::compare_nocase(filepathTransformed, filepath);
+		if (!FileTransform::AnyCodepageToUTF8(encoding.m_codepage, filepathTransformed, bMayOverwrite1))
 			return false;
 	}
 	return true;

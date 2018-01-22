@@ -74,6 +74,7 @@ public:
 	bool IsModified() const;
 	bool IsFileChangedOnDisk(int pane) const;
 	void CheckFileChanged(void);
+	String GetDescription(int pane) const { return m_strDesc[pane]; }
 
 // Attributes
 protected:
@@ -199,6 +200,8 @@ private:
 	afx_msg void OnUpdateImgZoom(CCmdUI* pCmdUI);
 	afx_msg void OnImgOverlayMode(UINT nId);
 	afx_msg void OnUpdateImgOverlayMode(CCmdUI* pCmdUI);
+	afx_msg void OnImgDraggingMode(UINT nId);
+	afx_msg void OnUpdateImgDraggingMode(CCmdUI* pCmdUI);
 	afx_msg void OnImgDiffBlockSize(UINT nId);
 	afx_msg void OnUpdateImgDiffBlockSize(CCmdUI* pCmdUI);
 	afx_msg void OnImgThreshold(UINT nId);
@@ -218,8 +221,3 @@ private:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Developer Studio will insert additional declarations immediately before the previous line.

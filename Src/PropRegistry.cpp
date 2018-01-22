@@ -82,19 +82,31 @@ void PropRegistry::WriteOptions()
 {
 	GetOptionsMgr()->SaveOption(OPT_USE_RECYCLE_BIN, m_bUseRecycleBin == TRUE);
 
-	String sExtEditor = string_trim_ws(m_strEditorPath);
+	String sExtEditor = strutils::trim_ws(m_strEditorPath);
 	if (sExtEditor.empty())
 		sExtEditor = GetOptionsMgr()->GetDefault<String>(OPT_EXT_EDITOR_CMD);
 	GetOptionsMgr()->SaveOption(OPT_EXT_EDITOR_CMD, sExtEditor);
 
-	String sFilterPath = string_trim_ws(m_strUserFilterPath);
+	String sFilterPath = strutils::trim_ws(m_strUserFilterPath);
 	GetOptionsMgr()->SaveOption(OPT_FILTER_USERPATH, sFilterPath);
 
 	bool useSysTemp = m_tempFolderType == 0;
 	GetOptionsMgr()->SaveOption(OPT_USE_SYSTEM_TEMP_PATH, useSysTemp);
 
-	String tempFolder = string_trim_ws(m_tempFolder);
+	String tempFolder = strutils::trim_ws(m_tempFolder);
 	GetOptionsMgr()->SaveOption(OPT_CUSTOM_TEMP_PATH, tempFolder);
+}
+
+BOOL PropRegistry::OnInitDialog()
+{
+	OptionsPanel::OnInitDialog();
+	m_tooltips.Create(this);
+	m_tooltips.SetMaxTipWidth(600);
+	m_tooltips.AddTool(GetDlgItem(IDC_EXT_EDITOR_PATH), 
+		_("You can specify the following parameters to the path:\n"
+		  "$file: Path name of the current file\n"
+		  "$linenum: Line number of the current cursor position").c_str());
+	return TRUE;
 }
 
 /// Open file browse dialog to locate editor
@@ -125,4 +137,16 @@ void PropRegistry::OnBrowseTmpFolder()
 	{
 		SetDlgItemText(IDC_TMPFOLDER_NAME, path);
 	}
+}
+
+BOOL PropRegistry::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_LBUTTONDOWN ||
+		pMsg->message == WM_LBUTTONUP ||
+		pMsg->message == WM_MOUSEMOVE)
+	{
+		m_tooltips.RelayEvent(pMsg);
+	}
+
+	return OptionsPanel::PreTranslateMessage(pMsg);
 }

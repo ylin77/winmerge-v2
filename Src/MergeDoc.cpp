@@ -63,6 +63,7 @@
 #include "Merge7zFormatMergePluginImpl.h"
 #include "7zCommon.h"
 #include "PatchTool.h"
+#include "charsets.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -124,9 +125,6 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CMergeDoc construction/destruction
 
-
-#pragma warning(disable:4355)
-
 /**
  * @brief Constructor.
  */
@@ -168,8 +166,6 @@ CMergeDoc::CMergeDoc()
 	m_diffWrapper.SetOptions(&options);
 	m_diffWrapper.SetPrediffer(NULL);
 }
-
-#pragma warning(default:4355)
 
 /**
  * @brief Destructor.
@@ -309,7 +305,7 @@ static void SaveBuffForDiff(CDiffTextBuffer & buf, const String& filepath, bool 
 	{
 	// we subvert the buffer's memory of the original file encoding
 		buf.setUnicoding(ucr::UTF8);  // write as UTF-8 (for preprocessing)
-		buf.setCodepage(CP_UTF8); // should not matter
+		buf.setCodepage(ucr::CP_UTF_8); // should not matter
 		buf.setHasBom(false);
 	}
 
@@ -348,7 +344,7 @@ int CMergeDoc::Rescan(bool &bBinary, IDENTLEVEL &identical,
 {
 	DIFFOPTIONS diffOptions = {0};
 	DiffFileInfo fileInfo;
-	bool diffSuccess;
+	bool diffSuccess = false;
 	int nResult = RESCAN_OK;
 	FileChange FileChanged[3] = {FileNoChange, FileNoChange, FileNoChange};
 	int nBuffer;
@@ -388,7 +384,7 @@ int CMergeDoc::Rescan(bool &bBinary, IDENTLEVEL &identical,
 	{
 		if (FileChanged[nBuffer] == FileRemoved)
 		{
-			String msg = string_format_string1(_("The file\n%1\nhas disappeared. Please save a copy of the file to continue."), m_filePaths[nBuffer]);
+			String msg = strutils::format_string1(_("The file\n%1\nhas disappeared. Please save a copy of the file to continue."), m_filePaths[nBuffer]);
 			AfxMessageBox(msg.c_str(), MB_ICONWARNING);
 			bool bSaveResult = false;
 			bool ok = DoSaveAs(m_filePaths[nBuffer].c_str(), bSaveResult, nBuffer);
@@ -439,7 +435,7 @@ int CMergeDoc::Rescan(bool &bBinary, IDENTLEVEL &identical,
 	else
 		m_diffWrapper.SetPaths(PathContext(m_tempFiles[0].GetPath(), m_tempFiles[1].GetPath(), m_tempFiles[2].GetPath()), true);
 	m_diffWrapper.SetCompareFiles(m_filePaths);
-	m_diffWrapper.SetCodepage(bForceUTF8 ? CP_UTF8 : (m_ptBuf[0]->m_encoding.m_unicoding ? CP_UTF8 : m_ptBuf[0]->m_encoding.m_codepage));
+	m_diffWrapper.SetCodepage(bForceUTF8 ? ucr::CP_UTF_8 : (m_ptBuf[0]->m_encoding.m_unicoding ? CP_UTF8 : m_ptBuf[0]->m_encoding.m_codepage));
 	m_diffWrapper.SetCodepage(m_ptBuf[0]->m_encoding.m_unicoding ?
 			CP_UTF8 : m_ptBuf[0]->m_encoding.m_codepage);
 
@@ -467,7 +463,7 @@ int CMergeDoc::Rescan(bool &bBinary, IDENTLEVEL &identical,
 		const std::vector<std::vector<int> > syncpoints = GetSyncPointList();	
 		int nStartLine[3] = {0};
 		int nLines[3], nRealLine[3];
-		for (int i = 0; i <= syncpoints.size(); ++i)
+		for (size_t i = 0; i <= syncpoints.size(); ++i)
 		{
 			// Save text buffer to file
 			for (nBuffer = 0; nBuffer < m_nBuffers; nBuffer++)
@@ -606,7 +602,7 @@ void CMergeDoc::CheckFileChanged(void)
 	{
 		if (FileChange[nBuffer] == FileChanged)
 		{
-			String msg = string_format_string1(_("Another application has updated file\n%1\nsince WinMerge scanned it last time.\n\nDo you want to reload the file?"), m_filePaths[nBuffer]);
+			String msg = strutils::format_string1(_("Another application has updated file\n%1\nsince WinMerge scanned it last time.\n\nDo you want to reload the file?"), m_filePaths[nBuffer]);
 			if (AfxMessageBox(msg.c_str(), MB_YESNO | MB_ICONWARNING) == IDYES)
 			{
 				OnFileReload();
@@ -1018,10 +1014,10 @@ void CMergeDoc::DoAutoMerge(int dstPane)
 		m_pView[dstPane]->SelectDiff(nDiff, true, false);
 
 	AfxMessageBox(
-		string_format_string2(
+		strutils::format_string2(
 			_T("The number of automatically merged changes: %1\nThe number of unresolved conflicts: %2"), 
-			string_format(_T("%d"), autoMergedCount),
-			string_format(_T("%d"), unresolvedConflictCount)).c_str(),
+			strutils::format(_T("%d"), autoMergedCount),
+			strutils::format(_T("%d"), unresolvedConflictCount)).c_str(),
 		MB_ICONINFORMATION);
 }
 
@@ -1246,7 +1242,7 @@ bool CMergeDoc::TrySaveAs(String &strPath, int &nSaveResult, String & sError,
 	{
 		if (m_nBuffers == 3)
 		{
-			str = string_format_string2(
+			str = strutils::format_string2(
 				nBuffer == 0 ? 
 					_("Plugin '%2' cannot pack your changes to the left file back into '%1'.\n\nThe original file will not be changed.\n\nDo you want to save the unpacked version to another file?")
 					: (nBuffer == 1 ? 
@@ -1256,7 +1252,7 @@ bool CMergeDoc::TrySaveAs(String &strPath, int &nSaveResult, String & sError,
 		}
 		else
 		{
-			str = string_format_string2(nBuffer == 0 ? _("Plugin '%2' cannot pack your changes to the left file back into '%1'.\n\nThe original file will not be changed.\n\nDo you want to save the unpacked version to another file?") : 
+			str = strutils::format_string2(nBuffer == 0 ? _("Plugin '%2' cannot pack your changes to the left file back into '%1'.\n\nThe original file will not be changed.\n\nDo you want to save the unpacked version to another file?") : 
 				_("Plugin '%2' cannot pack your changes to the right file back into '%1'.\n\nThe original file will not be changed.\n\nDo you want to save the unpacked version to another file?"),
 				strPath, pInfoTempUnpacker->pluginName);
 		}
@@ -1265,7 +1261,7 @@ bool CMergeDoc::TrySaveAs(String &strPath, int &nSaveResult, String & sError,
 	}
 	else
 	{
-		str = string_format_string2(_("Saving file failed.\n%1\n%2\nDo you want to:\n\t-use a different filename (Press Ok)\n\t-abort the current operation (Press Cancel)?"), strPath, sError);
+		str = strutils::format_string2(_("Saving file failed.\n%1\n%2\nDo you want to:\n\t-use a different filename (Press Ok)\n\t-abort the current operation (Press Cancel)?"), strPath, sError);
 	}
 
 	// SAVE_NO_FILENAME is temporarily used for scratchpad.
@@ -1348,7 +1344,7 @@ bool CMergeDoc::DoSave(LPCTSTR szPath, bool &bSaveSuccess, int nBuffer)
 	fileChanged = IsFileChangedOnDisk(szPath, fileInfo, true, nBuffer);
 	if (fileChanged == FileChanged)
 	{
-		String msg = string_format_string1(_("Another application has updated file\n%1\nsince WinMerge loaded it.\n\nOverwrite changed file?"), szPath);
+		String msg = strutils::format_string1(_("Another application has updated file\n%1\nsince WinMerge loaded it.\n\nOverwrite changed file?"), szPath);
 		if (AfxMessageBox(msg.c_str(), MB_ICONWARNING | MB_YESNO) == IDNO)
 		{
 			bSaveSuccess = true;
@@ -1723,9 +1719,9 @@ void CMergeDoc::DoFileSave(int nBuffer)
 		// If DirDoc contains compare results
 		if (m_pDirDoc && m_pDirDoc->HasDiffs())
 		{
-			for (int nBuffer = 0; nBuffer < m_nBuffers; nBuffer++)
+			for (int nBuffer1 = 0; nBuffer1 < m_nBuffers; nBuffer1++)
 			{
-				if (m_bEditAfterRescan[nBuffer])
+				if (m_bEditAfterRescan[nBuffer1])
 				{
 					FlushAndRescan(false);
 					break;
@@ -1822,7 +1818,8 @@ void CMergeDoc::OnUpdateStatusNum(CCmdUI* pCmdUI)
 	else if (GetCurrentDiff() < 0)
 	{
 		s = nDiffs == 1 ? _("1 Difference Found") : _("%1 Differences Found");
-		string_replace(s, _T("%1"), _itot(nDiffs, sCnt, 10));
+		_itot_s(nDiffs, sCnt, 10);
+		strutils::replace(s, _T("%1"), sCnt);
 	}
 	
 	// There are differences and diff selected
@@ -1831,8 +1828,10 @@ void CMergeDoc::OnUpdateStatusNum(CCmdUI* pCmdUI)
 	{
 		s = _("Difference %1 of %2");
 		const int signInd = m_diffList.GetSignificantIndex(GetCurrentDiff());
-		string_replace(s, _T("%1"), _itot(signInd + 1, sIdx, 10));
-		string_replace(s, _T("%2"), _itot(nDiffs, sCnt, 10));
+		_itot_s(signInd + 1, sIdx, 10);
+		strutils::replace(s, _T("%1"), sIdx);
+		_itot_s(nDiffs, sCnt, 10);
+		strutils::replace(s, _T("%2"), sCnt);
 	}
 	pCmdUI->SetText(s.c_str());
 }
@@ -1935,8 +1934,8 @@ void CMergeDoc::PrimeTextBuffers()
 	m_diffList.GetExtraLinesCounts(m_nBuffers, extras);
 
 	// resize m_aLines once for each view
-	UINT lcount[3];
-	UINT lcountnew[3];
+	UINT lcount[3] = {0};
+	UINT lcountnew[3] = {0};
 	
 	for (file = 0; file < m_nBuffers; file++)
 	{
@@ -2088,10 +2087,8 @@ CMergeDoc::FileChange CMergeDoc::IsFileChangedOnDisk(LPCTSTR szPath, DiffFileInf
 		fileInfo = m_pRescanFileInfo[nBuffer].get();
 
 	// We assume file existed, so disappearing means removal
-	if (_taccess(szPath, 0) == -1)
+	if (!dfi.Update(szPath))
 		return FileRemoved;
-
-	dfi.Update(szPath);
 
 	int64_t timeDiff = dfi.mtime - fileInfo->mtime;
 	if (timeDiff < 0) timeDiff = -timeDiff;
@@ -2399,14 +2396,14 @@ int CMergeDoc::LoadFile(CString sFileName, int nBuffer, bool & readOnly, const F
 	{
 		// Error from Unifile/system
 		if (!sOpenError.IsEmpty())
-			sError = string_format_string2(_("Cannot open file\n%1\n\n%2"), (LPCTSTR)sFileName, (LPCTSTR)sOpenError);
+			sError = strutils::format_string2(_("Cannot open file\n%1\n\n%2"), (LPCTSTR)sFileName, (LPCTSTR)sOpenError);
 		else
-			sError = string_format_string1(_("File not found: %1"), (LPCTSTR)sFileName);
+			sError = strutils::format_string1(_("File not found: %1"), (LPCTSTR)sFileName);
 		AfxMessageBox(sError.c_str(), MB_OK | MB_ICONSTOP | MB_MODELESS);
 	}
 	else if (FileLoadResult::IsErrorUnpack(retVal))
 	{
-		sError = string_format_string1(_("File not unpacked: %1"), (LPCTSTR)sFileName);
+		sError = strutils::format_string1(_("File not unpacked: %1"), (LPCTSTR)sFileName);
 		AfxMessageBox(sError.c_str(), MB_OK | MB_ICONSTOP | MB_MODELESS);
 	}
 	return retVal;
@@ -2421,10 +2418,7 @@ bool CMergeDoc::IsValidCodepageForMergeEditor(unsigned cp) const
 {
 	if (!cp) // 0 is our signal value for invalid
 		return false;
-	// Codepage must be actually installed on system
-	// for us to be able to use it
-	// We accept whatever codepages that codepage module says are installed
-	return true;/*isCodepageInstalled(cp);*/ /* FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME */
+	return GetEncodingNameFromCodePage(cp) != NULL;
 }
 
 /**
@@ -2553,7 +2547,7 @@ bool CMergeDoc::OpenDocs(int nFiles, const FileLocation ifileloc[],
 	}
 
 	// Bail out if either side failed
-	if (std::find_if(nSuccess, nSuccess + m_nBuffers, std::not1(std::ptr_fun(FileLoadResult::IsOk))) != nSuccess + m_nBuffers)
+	if (std::find_if(nSuccess, nSuccess + m_nBuffers, [](DWORD d){return !FileLoadResult::IsOk(d);} ) != nSuccess + m_nBuffers)
 	{
 		CChildFrame *pFrame = GetParentFrame();
 		if (pFrame)
@@ -2601,6 +2595,10 @@ bool CMergeDoc::OpenDocs(int nFiles, const FileLocation ifileloc[],
 		// Currently there is only one set of syntax colors, which all documents & views share
 		m_pView[nBuffer]->SetColorContext(theApp.GetMainSyntaxColors());
 		m_pDetailView[nBuffer]->SetColorContext(theApp.GetMainSyntaxColors());
+
+		// Currently there is only one set of markers, which all documents & views share
+		m_pView[nBuffer]->SetMarkersContext(theApp.GetMainMarkers());
+		m_pDetailView[nBuffer]->SetMarkersContext(theApp.GetMainMarkers());
 
 		// Set read-only statuses
 		m_ptBuf[nBuffer]->SetReadOnly(bRO[nBuffer]);
@@ -2906,9 +2904,9 @@ void CMergeDoc::SetTitle(LPCTSTR lpszTitle)
 		for (int nBuffer = 0; nBuffer < m_nBuffers; nBuffer++)
 			sFileName[nBuffer] = !m_strDesc[nBuffer].empty() ? m_strDesc[nBuffer] : paths::FindFileName(m_filePaths[nBuffer]);
 		if (std::count(&sFileName[0], &sFileName[0] + m_nBuffers, sFileName[0]) == m_nBuffers)
-			sTitle = sFileName[0] + string_format(_T(" x %d"), m_nBuffers);
+			sTitle = sFileName[0] + strutils::format(_T(" x %d"), m_nBuffers);
 		else
-			sTitle = string_join(&sFileName[0], &sFileName[0] + m_nBuffers, _T(" - "));
+			sTitle = strutils::join(&sFileName[0], &sFileName[0] + m_nBuffers, _T(" - "));
 	}
 	CDocument::SetTitle(sTitle.c_str());
 }
@@ -2976,6 +2974,8 @@ void CMergeDoc::SwapFiles()
 	m_filePaths.Swap();
 	m_diffList.Swap(0, m_nBuffers - 1);
 	swap(m_pView[0]->m_piMergeEditStatus, m_pView[m_nBuffers - 1]->m_piMergeEditStatus);
+
+	ClearWordDiffCache();
 
 	for (int nBuffer = 0; nBuffer < m_nBuffers; nBuffer++)
 	{
@@ -3169,16 +3169,15 @@ bool CMergeDoc::GenerateReport(const String& sFileName) const
 	if (!file.Open(sFileName, _T("wt")))
 	{
 		String errMsg = GetSysError(GetLastError());
-		String msg = string_format_string1(
+		String msg = strutils::format_string1(
 			_("Error creating the report:\n%1"), errMsg);
 		AfxMessageBox(msg.c_str(), MB_OK | MB_ICONSTOP);
 		return false;
 	}
 
-	file.SetCodepage(CP_UTF8);
+	file.SetCodepage(ucr::CP_UTF_8);
 
-	String header = 
-		string_format(
+	CString headerText =
 		_T("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n")
 		_T("\t\"http://www.w3.org/TR/html4/loose.dtd\">\n")
 		_T("<html>\n")
@@ -3200,8 +3199,9 @@ bool CMergeDoc::GenerateReport(const String& sFileName) const
 		_T("<div class=\"border\">")
 		_T("<table cellspacing=\"0\" cellpadding=\"0\" style=\"width: 100%%; margin: 0; border: none;\">\n")
 		_T("<thead>\n")
-		_T("<tr>\n"),
-		nFontSize, m_pView[0]->GetHTMLStyles());
+		_T("<tr>\n");
+	String header = 
+		strutils::format((LPCTSTR)headerText, nFontSize, (LPCTSTR)m_pView[0]->GetHTMLStyles());
 	file.WriteString(header);
 
 	// Get paths
@@ -3227,10 +3227,10 @@ bool CMergeDoc::GenerateReport(const String& sFileName) const
 	for (nBuffer = 0; nBuffer < m_nBuffers; nBuffer++)
 	{
 		int nLineNumberColumnWidth = 1;
-		String data = string_format(_T("<th class=\"title\" style=\"width:%d%%\"></th>"), 
+		String data = strutils::format(_T("<th class=\"title\" style=\"width:%d%%\"></th>"), 
 			nLineNumberColumnWidth);
 		file.WriteString(data);
-		data = string_format(_T("<th class=\"title\" style=\"width:%f%%\">"),
+		data = strutils::format(_T("<th class=\"title\" style=\"width:%f%%\">"),
 			(double)(100 - nLineNumberColumnWidth * m_nBuffers) / m_nBuffers);
 		file.WriteString(data);
 		file.WriteString(paths[nBuffer].c_str());
@@ -3269,10 +3269,10 @@ bool CMergeDoc::GenerateReport(const String& sFileName) const
 				    !(m_ptBuf[nBuffer]->GetLineFlags(idx[nBuffer] - 1) & (LF_DIFF | LF_GHOST))))
 				{
 					++nDiff;
-					tdtag += string_format(_T("<a name=\"d%d\" href=\"#d%d\">.</a>"), nDiff, nDiff);
+					tdtag += strutils::format(_T("<a name=\"d%d\" href=\"#d%d\">.</a>"), nDiff, nDiff);
 				}
 				if (!(dwFlags & LF_GHOST) && m_pView[nBuffer]->GetViewLineNumbers())
-					tdtag += string_format(_T("%d</td>"), m_ptBuf[nBuffer]->ComputeRealLine(idx[nBuffer]) + 1);
+					tdtag += strutils::format(_T("%d</td>"), m_ptBuf[nBuffer]->ComputeRealLine(idx[nBuffer]) + 1);
 				else
 					tdtag += _T("</td>");
 				file.WriteString(tdtag);
@@ -3456,7 +3456,7 @@ std::vector<std::vector<int> > CMergeDoc::GetSyncPointList()
 			if (m_ptBuf[nBuffer]->GetLineFlags(nLine) & LF_INVALID_BREAKPOINT)
 			{
 				idx[nBuffer]++;
-				if (list.size() <= idx[nBuffer])
+				if (static_cast<int>(list.size()) <= idx[nBuffer])
 					list.push_back(points);
 				list[idx[nBuffer]][nBuffer] = nLine;
 			}

@@ -18,10 +18,8 @@ along with GNU DIFF; see the file COPYING.  If not, write to
 the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
 #include "diff.h"
-#ifdef _WIN32
-#  include <io.h>
-#  define read _read
-#endif
+#include <io.h>
+#include <cassert>
 
 /* Rotate a value n bits to the left. */
 #define UINT_BIT (sizeof (unsigned) * CHAR_BIT)
@@ -77,9 +75,9 @@ static DECL_TLS int equivs_index;
 /* Number of elements allocated in the array `equivs'.  */
 static DECL_TLS int equivs_alloc;
 
-static void find_and_hash_each_line PARAMS((struct file_data *));
-static void find_identical_ends PARAMS((struct file_data[]));
-static char *prepare_text_end PARAMS((struct file_data *, short));
+static void find_and_hash_each_line (struct file_data *);
+static void find_identical_ends (struct file_data[]);
+static char *prepare_text_end (struct file_data *, short);
 static enum UNICODESET get_unicode_signature(struct file_data *, unsigned *bom);
 
 /* Check for binary files and compare them for exact identity.  */
@@ -139,13 +137,11 @@ static enum UNICODESET get_unicode_signature(struct file_data *current, unsigned
    and if it appears to be a binary file.  */
 
 int
-sip (current, skip_test)
-     struct file_data *current;
-     int skip_test;
+sip (struct file_data *current, int skip_test)
 {
   int isbinary = 0;
-  /* If we have a nonexistent file at this stage, treat it as empty.  */
-  if (current->desc < 0)
+  /* If we have a nonexistent file (or NUL: device) at this stage, treat it as empty.  */
+  if (current->desc < 0 || !(S_ISREG (current->stat.st_mode)))
     {
       /* Leave room for a sentinel.  */
       current->buffer = xmalloc (sizeof (word));
@@ -168,12 +164,9 @@ sip (current, skip_test)
       else
         {
           /* Check first part of file to see if it's a binary file.  */
-          current->buffered_chars = read (current->desc,
+          current->buffered_chars = _read (current->desc,
             current->buffer,
-#ifdef __MSDOS__
-            (unsigned int)
-#endif /*__MSDOS__*/
-            current->buffered_chars);
+            (unsigned int)current->buffered_chars);
           if (current->buffered_chars == -1)
             pfatal_with_name (current->name);
           if (!get_unicode_signature(current, NULL))
@@ -187,8 +180,7 @@ sip (current, skip_test)
 /* Slurp the rest of the current file completely into memory.  */
 
 void
-slurp (current)
-     struct file_data *current;
+slurp (struct file_data *current)
 {
   size_t cc;
 
@@ -232,9 +224,10 @@ slurp (current)
               current->buffer = xrealloc (current->buffer, current->bufsize);
 #endif /*__MSDOS__*/
             }
-          cc = read (current->desc,
+		  assert((current->bufsize - current->buffered_chars) < UINT_MAX);
+          cc = _read (current->desc,
           current->buffer + current->buffered_chars,
-          current->bufsize - current->buffered_chars);
+          (unsigned int)(current->bufsize - current->buffered_chars));
           if (cc == 0)
             break;
           if (cc == -1)
@@ -243,9 +236,14 @@ slurp (current)
         }
 #ifndef __MSDOS__
       /* Allocate 50% extra room for a necessary transcoding to UTF-8.
-         Allocate enough room for appended newline and sentinel. */
-      current->bufsize = current->buffered_chars + (alloc_extra & current->buffered_chars / 2) + sizeof (word) + 1;
-      current->buffer = xrealloc (current->buffer, current->bufsize);
+         Allocate enough room for appended newline and sentinel. 
+		 But don't reallocate if the buffer is already big enough */
+	  FSIZE tmp_bufsize = current->buffered_chars + (alloc_extra & current->buffered_chars / 2) + sizeof (word) + 1;
+	  if (tmp_bufsize > current->bufsize) 
+	    { 
+		  current->buffer = xrealloc (current->buffer, tmp_bufsize);
+		  current->bufsize = tmp_bufsize;
+	    }
 #endif /*!__MSDOS__*/
     }
 }
@@ -259,8 +257,7 @@ ISWSPACE (char ch)
 /* Split the file into lines, simultaneously computing the equivalence class for
    each line. */
 static void
-find_and_hash_each_line (current)
-     struct file_data *current;
+find_and_hash_each_line (struct file_data *current)
 {
   unsigned h;
   unsigned char const HUGE *p = (unsigned char const HUGE *) current->prefix_end;
@@ -476,27 +473,25 @@ hashing_done:;
    Return effective start of text to be compared. */
 
 static char *
-prepare_text_end (current, side)
-     struct file_data *current;
-	 short side;
+prepare_text_end (struct file_data *current, short side)
 {
   FSIZE buffered_chars = current->buffered_chars;
   char *const p = current->buffer;
   char *r = p; // receives the return value
-  char *q, *t;
+  char *q0, *t;
   unsigned bom = 0;
   enum UNICODESET sig = get_unicode_signature(current, &bom);
-  char *const u = p + bom;
+  char *const u0 = p + bom;
 
   if (sig == UCS4LE)
     {
       FSIZE buffered_words = buffered_chars / 2;
-      unsigned long *q = (unsigned long *)p + buffered_words / 2;
+      unsigned long *q1 = (unsigned long *)p + buffered_words / 2;
       buffered_chars += buffered_words;
       r = p + buffered_chars;
-      while (--q >= (unsigned long *)u) // exclude the BOM
+      while (--q1 >= (unsigned long *)u0) // exclude the BOM
         {
-          unsigned long u = *q;
+          unsigned long u = *q1;
           if (u >= 0x80000000)
             {
               *--r = '?';
@@ -548,7 +543,7 @@ prepare_text_end (current, side)
       unsigned long *q = (unsigned long *)p + buffered_words / 2;
       buffered_chars += buffered_words;
       r = p + buffered_chars;
-      while (--q >= (unsigned long *)u) // exclude the BOM
+      while (--q >= (unsigned long *)u0) // exclude the BOM
         {
           unsigned long u =
           ((*q & 0x000000FF) << 24) |
@@ -606,7 +601,7 @@ prepare_text_end (current, side)
       unsigned short *q = (unsigned short *)p + buffered_words;
       buffered_chars += buffered_words;
       r = p + buffered_chars;
-      while (--q >= (unsigned short *)u) // exclude the BOM
+      while (--q >= (unsigned short *)u0) // exclude the BOM
         {
           unsigned short u = *q;
           if (u >= 0x800)
@@ -632,7 +627,7 @@ prepare_text_end (current, side)
       unsigned short *q = (unsigned short *)p + buffered_words;
       buffered_chars += buffered_words;
       r = p + buffered_chars;
-      while (--q >= (unsigned short *)u) // exclude the BOM
+      while (--q >= (unsigned short *)u0) // exclude the BOM
         {
           unsigned short u = (*q << 8) | (*q >> 8); // fix byte order
           if (u >= 0x800)
@@ -654,7 +649,7 @@ prepare_text_end (current, side)
     }
   else if (sig == UTF8)
     {
-      r = u; // skip the BOM
+      r = u0; // skip the BOM
     }
 
   if (buffered_chars == 0 || p[buffered_chars - 1] == '\n' || p[buffered_chars - 1] == '\r')
@@ -669,10 +664,10 @@ prepare_text_end (current, side)
 	current->buffered_chars = buffered_chars;
 
 	/* Count line endings and map them to '\n' if ignore_eol_diff is set. */
-	t = q = p + buffered_chars;
-	while (q > r)
+	t = q0 = p + buffered_chars;
+	while (q0 > r)
 	{
-		switch (*--t = *--q)
+		switch (*--t = *--q0)
 		{
 		case '\r':
 			++current->count_crs;
@@ -680,7 +675,7 @@ prepare_text_end (current, side)
 				*t = '\n';
 			break;
 		case '\n':
-			if (q > r && q[-1] == '\r')
+			if (q0 > r && q0[-1] == '\r')
 			{
 				++current->count_crlfs;
 				--current->count_crs; // compensate for bogus increment
@@ -707,8 +702,7 @@ prepare_text_end (current, side)
    prefixes and suffixes of each object. */
 
 static void
-find_identical_ends (filevec)
-     struct file_data filevec[];
+find_identical_ends (struct file_data filevec[])
 {
   word HUGE *w0, HUGE *w1;
   char HUGE *p0, HUGE *p1, HUGE *buffer0, HUGE *buffer1;
@@ -869,7 +863,8 @@ find_identical_ends (filevec)
       for (prefix_count = 1;  prefix_count < context + 1;  prefix_count *= 2)
         ;
       prefix_mask = prefix_count - 1;
-      ttt = p0 - (char HUGE *)filevec[0].prefix_end;
+	  assert((p0 - (char HUGE *)filevec[0].prefix_end) < INT_MAX);
+      ttt = (int)(p0 - (char HUGE *)filevec[0].prefix_end);
       alloc_lines0
         = prefix_count
         + GUESS_LINES (0, 0, ttt)
@@ -913,7 +908,8 @@ find_identical_ends (filevec)
 
   /* Allocate line buffer 1.  */
   tem = prefix_count ? filevec[1].suffix_begin - buffer1 : n1;
-  ttt = filevec[1].prefix_end - buffer1;
+  assert((filevec[1].prefix_end - buffer1) < INT_MAX);
+  ttt = (int)(filevec[1].prefix_end - buffer1);
   alloc_lines1
     = (buffered_prefix
        + GUESS_LINES (lines, ttt, tem)
@@ -938,8 +934,10 @@ find_identical_ends (filevec)
   filevec[0].linbuf = linbuf0 + buffered_prefix;
   filevec[1].linbuf = linbuf1 + buffered_prefix;
   filevec[0].linbuf_base = filevec[1].linbuf_base = - buffered_prefix;
-  filevec[0].alloc_lines = alloc_lines0 - buffered_prefix;
-  filevec[1].alloc_lines = alloc_lines1 - buffered_prefix;
+  assert((alloc_lines0 - buffered_prefix) < INT_MAX);
+  assert((alloc_lines1 - buffered_prefix) < INT_MAX);
+  filevec[0].alloc_lines = (int)(alloc_lines0 - buffered_prefix);
+  filevec[1].alloc_lines = (int)(alloc_lines1 - buffered_prefix);
   filevec[0].prefix_lines = filevec[1].prefix_lines = lines;
 }
 
@@ -984,10 +982,7 @@ static int const primes[] =
    If bin_file is given, then check both files for binary files,
    otherwise check second file only if first wasn't binary */
 int
-read_files (filevec, pretend_binary, bin_file)
-     struct file_data filevec[];
-     int pretend_binary;
-     int * bin_file;
+read_files (struct file_data filevec[], int pretend_binary, int *bin_file)
 {
   int i;
   int skip_test = always_text_flag | pretend_binary;
@@ -1012,13 +1007,64 @@ read_files (filevec, pretend_binary, bin_file)
       else
         appears_binary |= sip (&filevec[1], skip_test | appears_binary);
     }
-  else
-    {
-      filevec[1].buffer = filevec[0].buffer;
-      filevec[1].bufsize = filevec[0].bufsize;
-      filevec[1].buffered_chars = filevec[0].buffered_chars;
-    }
+	
+	// Are both files Open and Regular (no Pipes, Directories, Devices (e.g. NUL))
+	if (filevec[0].desc < 0 || filevec[1].desc < 0 ||
+		!(S_ISREG (filevec[0].stat.st_mode)) || !(S_ISREG (filevec[1].stat.st_mode))   )
+	{
+		assert(!S_ISCHR(filevec[0].stat.st_mode) || strcmp(filevec[0].name, "NUL")==0);
+		assert(!S_ISCHR(filevec[1].stat.st_mode) || strcmp(filevec[1].name, "NUL")==0);
+		return appears_binary;
+	}
 
+  if (appears_binary)
+	{
+		// Because of the way 3-way binary comparison works, both buffers need
+		// to be exactly the same size.  It also makes sense if the buffers are
+		// large enough to hold a large chunk of the file with each read(); 
+		// within reason of course.  Note: if the buffers are too big, the 
+		// multi-processor performance is degraded.
+		
+		// Note that one or both buffers already have some amount of data.
+
+		const FSIZE tmax_reasonable = (1 << 19) -1;		// 2**19 bytes, about 524KB
+
+		FSIZE tmax_bufsize = max ((size_t)filevec[0].stat.st_size, 
+								  (size_t)filevec[1].stat.st_size);
+		tmax_bufsize = min (tmax_bufsize, tmax_reasonable);
+		
+		FSIZE tmin_bufsize = max(filevec[0].buffered_chars, filevec[1].buffered_chars);
+		tmax_bufsize = max (tmax_bufsize, tmin_bufsize);
+
+		if (tmax_bufsize > filevec[0].bufsize)
+		  {
+			filevec[0].buffer = xrealloc (filevec[0].buffer, tmax_bufsize);
+			filevec[0].bufsize = tmax_bufsize;
+		  }
+		if (filevec[0].desc != filevec[1].desc && tmax_bufsize > filevec[1].bufsize)
+		  {
+			filevec[1].buffer = xrealloc (filevec[1].buffer, tmax_bufsize);
+			filevec[1].bufsize = tmax_bufsize;
+		  }
+	}
+	  
+  if (filevec[0].desc == filevec[1].desc)
+	{
+		// The files may be exactly the same file.  Give them the same buffer, etc.
+		assert( filevec[1].buffer == NULL );
+
+		filevec[1].buffer = filevec[0].buffer;
+		filevec[1].bufsize = filevec[0].bufsize;
+		filevec[1].buffered_chars = filevec[0].buffered_chars;
+	}
+	
+  // Binary comparisons *must not* go past here;  line-break sentinel markers may 
+  // be put into the buffers.  Since read_files() only gets called for filevec[0], 
+  // this causes a false mis-compare of all binary files (because filevec[1] would 
+  // never get these non-necessary changes).
+  if (appears_binary)
+		return 1;
+		
   find_identical_ends (filevec);
 
   /* Don't slurp rest of file when comparing file to itself. */
@@ -1028,15 +1074,8 @@ read_files (filevec, pretend_binary, bin_file)
 	  filevec[1].count_lfs = filevec[0].count_lfs;
 	  filevec[1].count_crlfs = filevec[0].count_crlfs;
 	  filevec[1].count_zeros = filevec[0].count_zeros;
-      if (appears_binary || (bin_file && *bin_file > 0))
-        return 1;
       return 0;
     }
-
-  if (appears_binary || (bin_file && *bin_file > 0))
-    return 1;
-
-  //find_identical_ends (filevec);
 
   equivs_alloc = filevec[0].alloc_lines + filevec[1].alloc_lines + 1;
 #ifdef __MSDOS__

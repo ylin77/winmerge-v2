@@ -176,7 +176,7 @@ Merge7z::Format *ArchiveGuessFormat(const String& path)
 		TCHAR cPath[INTERNET_MAX_PATH_LENGTH];
 		DWORD cchPath = SearchPath(NULL, _T("ExternalArchiveFormat.ini"), NULL,
 			INTERNET_MAX_PATH_LENGTH, cPath, NULL);
-		filename = cchPath && cchPath < INTERNET_MAX_PATH_LENGTH ? StrDup(cPath) : null;
+		filename = cchPath && cchPath < INTERNET_MAX_PATH_LENGTH ? _tcsdup(cPath) : null;
 	}
 	if (*filename &&
 		GetPrivateProfileString(section, entry.c_str(), null, value, 20, filename) &&
@@ -524,8 +524,8 @@ bool DirItemEnumerator::MultiStepCompressArchive(LPCTSTR path)
 		bool bDone = MultiStepCompressArchive(pathIntermediate);
 		if (bDone)
 		{
-			piHandler->CompressArchive(hwndOwner, path,
-				&SingleItemEnumerator(path, pathIntermediate));
+			SingleItemEnumerator tmpEnumerator(path, pathIntermediate);
+			piHandler->CompressArchive(hwndOwner, path, &tmpEnumerator);
 			DeleteFile(pathIntermediate);
 		}
 		else
@@ -624,7 +624,8 @@ DecompressResult DecompressArchive(HWND hWnd, const PathContext& files)
 		USES_CONVERSION;
 		// Handle archives using 7-zip
 		Merge7z::Format *piHandler;
-		if (piHandler = ArchiveGuessFormat(res.files[0]))
+		piHandler = ArchiveGuessFormat(res.files[0]);
+		if (piHandler)
 		{
 			res.pTempPathContext = new CTempPathContext;
 			path = env::GetTempChildPath();
@@ -638,17 +639,20 @@ DecompressResult DecompressArchive(HWND hWnd, const PathContext& files)
 					break;
 				if (res.files[0].find(path) == 0)
 				{
-					VERIFY(::DeleteFile(res.files[0].c_str()) || (LogErrorString(string_format(_T("DeleteFile(%s) failed"), res.files[0].c_str())), false));
+					VERIFY(::DeleteFile(res.files[0].c_str()) || (LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), res.files[0].c_str())), false));
 				}
 				BSTR pTmp = piHandler->GetDefaultName(hWnd, res.files[0].c_str());
 				res.files[0] = OLE2T(pTmp);
 				SysFreeString(pTmp);
 				res.files[0].insert(0, _T("\\"));
 				res.files[0].insert(0, path);
-			} while (piHandler = ArchiveGuessFormat(res.files[0]));
+				piHandler = ArchiveGuessFormat(res.files[0]);
+			} while (piHandler);
 			res.files[0] = path;
 		}
-		if (!res.files[1].empty() && (piHandler = ArchiveGuessFormat(res.files[1])))
+		piHandler = res.files[1].empty() ? nullptr
+										 : ArchiveGuessFormat(res.files[1]);
+		if (piHandler)
 		{
 			if (!res.pTempPathContext)
 			{
@@ -663,17 +667,19 @@ DecompressResult DecompressArchive(HWND hWnd, const PathContext& files)
 					break;;
 				if (res.files[1].find(path) == 0)
 				{
-					VERIFY(::DeleteFile(res.files[1].c_str()) || (LogErrorString(string_format(_T("DeleteFile(%s) failed"), res.files[1].c_str())), false));
+					VERIFY(::DeleteFile(res.files[1].c_str()) || (LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), res.files[1].c_str())), false));
 				}
 				BSTR pTmp = piHandler->GetDefaultName(hWnd, res.files[1].c_str());
 				res.files[1] = OLE2T(pTmp);
 				SysFreeString(pTmp);
 				res.files[1].insert(0, _T("\\"));
 				res.files[1].insert(0, path);
-			} while (piHandler = ArchiveGuessFormat(res.files[1]));
+				piHandler = ArchiveGuessFormat(res.files[1]);
+			} while (piHandler);
 			res.files[1] = path;
 		}
-		if (res.files.GetSize() > 2 && (piHandler = ArchiveGuessFormat(res.files[2])))
+		piHandler = (res.files.GetSize() <= 2) ? nullptr : ArchiveGuessFormat(res.files[2]);
+		if (piHandler)
 		{
 			if (!res.pTempPathContext)
 			{
@@ -688,14 +694,15 @@ DecompressResult DecompressArchive(HWND hWnd, const PathContext& files)
 					break;;
 				if (res.files[2].find(path) == 0)
 				{
-					VERIFY(::DeleteFile(res.files[2].c_str()) || (LogErrorString(string_format(_T("DeleteFile(%s) failed"), res.files[2].c_str())), false));
+					VERIFY(::DeleteFile(res.files[2].c_str()) || (LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), res.files[2].c_str())), false));
 				}
 				BSTR pTmp = piHandler->GetDefaultName(hWnd, res.files[1].c_str());
 				res.files[2] = OLE2T(pTmp);
 				SysFreeString(pTmp);
 				res.files[2].insert(0, _T("\\"));
 				res.files[2].insert(0, path);
-			} while (piHandler = ArchiveGuessFormat(res.files[2]));
+				piHandler = ArchiveGuessFormat(res.files[2]);
+			} while (piHandler);
 			res.files[2] = path;
 		}
 		if (res.files[1].empty())

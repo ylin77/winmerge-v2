@@ -31,12 +31,7 @@
 // ID line follows -- this is updated by SVN
 // $Id: ccrystaltextview.h 6888 2009-06-30 10:36:28Z kimmov $
 
-#if !defined(AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_)
-#define AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_
-
-#if _MSC_VER >= 1000
 #pragma once
-#endif // _MSC_VER >= 1000
 
 #include <vector>
 #include "cregexp.h"
@@ -51,7 +46,7 @@ struct ViewableWhitespaceChars;
 class SyntaxColors;
 class CFindTextDlg;
 struct LastSearchInfos;
-
+class CCrystalTextMarkers;
 
 ////////////////////////////////////////////////////////////////////////////
 // CCrystalTextView class declaration
@@ -92,6 +87,15 @@ class EDITPADC_CLASS CCrystalTextView : public CView
 
     friend CCrystalParser;
 
+public:
+    //  Syntax coloring overrides
+    struct TEXTBLOCK
+    {
+        int m_nCharPos;
+        int m_nColorIndex;
+        int m_nBgColorIndex;
+    };
+
 protected:
     //  Search parameters
     bool m_bLastSearch;
@@ -122,6 +126,7 @@ private :
     int m_nScreenLines, m_nScreenChars;
 
     SyntaxColors * m_pColors;
+    CCrystalTextMarkers * m_pMarkers;
 
     //BEGIN SW
     /**
@@ -206,6 +211,9 @@ public :
 
     SyntaxColors * GetSyntaxColors() { return m_pColors; }
     void SetColorContext(SyntaxColors * pColors) { m_pColors = pColors; }
+    CCrystalTextMarkers * GetMarkers() const { return m_pMarkers; }
+    void SetMarkersContext(CCrystalTextMarkers * pMarkers);
+    static int GetClipTcharTextFormat() { return sizeof(TCHAR) == 1 ? CF_TEXT : CF_UNICODETEXT; }
 
 protected :
     CPoint WordToRight (CPoint pt);
@@ -558,32 +566,26 @@ protected:
 	void InvalidateScreenRect(bool bInvalidateView = true);
 	//END SW
 
-    //  Syntax coloring overrides
-    struct TEXTBLOCK
-      {
-        int m_nCharPos;
-        int m_nColorIndex;
-		int m_nBgColorIndex;
-      };
-
     virtual HINSTANCE GetResourceHandle ();
 
 	//BEGIN SW
 	// function to draw a single screen line
 	// (a wrapped line can consist of many screen lines
 	virtual void DrawScreenLine( CDC *pdc, CPoint &ptOrigin, const CRect &rcClip,
-		TEXTBLOCK *pBuf, int nBlocks, int &nActualItem,
+		const std::vector<TEXTBLOCK>& blocks, int &nActualItem,
 		COLORREF crText, COLORREF crBkgnd, bool bDrawWhitespace,
 		LPCTSTR pszChars,
 		int nOffset, int nCount, int &nActualOffset, CPoint ptTextPos );
 	//END SW
 
-	int MergeTextBlocks(TEXTBLOCK *pBuf1, int nBlocks1, TEXTBLOCK *pBuf2, int nBlocks2, TEXTBLOCK *&pBufMerged);
-	virtual int GetAdditionalTextBlocks (int nLineIndex, TEXTBLOCK *&pBuf);
+	std::vector<TEXTBLOCK> MergeTextBlocks(const std::vector<TEXTBLOCK>& blocks1, const std::vector<TEXTBLOCK>& blocks2) const;
+	std::vector<TEXTBLOCK> GetMarkerTextBlocks(int nLineIndex) const;
+	virtual std::vector<TEXTBLOCK> GetAdditionalTextBlocks (int nLineIndex);
 
 public:
 	virtual CString GetHTMLLine (int nLineIndex, LPCTSTR pszTag);
 	virtual CString GetHTMLStyles ();
+	std::vector<TEXTBLOCK> GetTextBlocks(int nLineIndex);
 protected:
     virtual CString GetHTMLAttribute (int nColorIndex, int nBgColorIndex, COLORREF crText, COLORREF crBkgnd);
 
@@ -654,6 +656,7 @@ public :
     DWORD ParseLineCss (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineDcl (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineFortran (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
+    DWORD ParseLineGo (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineHtml (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineIni (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineInnoSetup (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
@@ -670,6 +673,7 @@ public :
     DWORD ParseLineRexx (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineRsrc (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
 	DWORD ParseLineRuby (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
+    DWORD ParseLineRust (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineSgml (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineSh (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineSiod (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
@@ -677,6 +681,7 @@ public :
     DWORD ParseLineTcl (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineTex (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineVerilog (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
+    DWORD ParseLineVhdl (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineXml (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
 
     // Attributes
@@ -736,10 +741,11 @@ public :
       SRC_BASIC,
       SRC_BATCH,
       SRC_C,
-	  SRC_CSHARP,
+      SRC_CSHARP,
       SRC_CSS,
       SRC_DCL,
       SRC_FORTRAN,
+      SRC_GO,
       SRC_HTML,
       SRC_INI,
       SRC_INNOSETUP,
@@ -755,7 +761,8 @@ public :
       SRC_PYTHON,
       SRC_REXX,
       SRC_RSRC,
-	  SRC_RUBY,
+      SRC_RUBY,
+      SRC_RUST,
       SRC_SGML,
       SRC_SH,
       SRC_SIOD,
@@ -763,6 +770,7 @@ public :
       SRC_TCL,
       SRC_TEX,
       SRC_VERILOG,
+      SRC_VHDL,
       SRC_XML
     }
     TextType;
@@ -845,7 +853,7 @@ public :
     void UpdateCompositionWindowFont();
 
     //  Overridable: an opportunity for Auto-Indent, Smart-Indent etc.
-    virtual void OnEditOperation (int nAction, LPCTSTR pszText, int cchText);
+    virtual void OnEditOperation (int nAction, LPCTSTR pszText, size_t cchText);
 
     // Overrides
     // ClassWizard generated virtual function overrides
@@ -903,6 +911,7 @@ protected :
     afx_msg void OnEditFind ();
     afx_msg void OnEditRepeat ();
     afx_msg void OnUpdateEditRepeat (CCmdUI * pCmdUI);
+    afx_msg void OnEditMark ();
     afx_msg void OnEditDeleteBack();
     afx_msg void OnChar( UINT nChar, UINT nRepCnt, UINT nFlags );
 
@@ -987,13 +996,8 @@ protected :
 #define ASSERT_VALIDTEXTPOS(pt)
 #endif
 
-#if ! (defined(CE_FROM_DLL) || defined(CE_DLL_BUILD))
-#include "ccrystaltextview.inl"
-#endif
 
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Developer Studio will insert additional declarations immediately before the previous line.
-
-#endif // !defined(AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_)
+inline bool CCrystalTextView::IsDraggingText () const
+{
+  return m_bDraggingText;
+}

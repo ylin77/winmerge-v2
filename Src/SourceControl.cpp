@@ -127,7 +127,7 @@ bool SourceControl::SaveToVersionControl(const String& strSavePath)
 	{
 		// Prompt for user choice
 		CVssPromptDlg dlg;
-		dlg.m_strMessage = string_format_string1(_("Save changes to %1?"), strSavePath);
+		dlg.m_strMessage = strutils::format_string1(_("Save changes to %1?"), strSavePath);
 		dlg.m_strProject = m_vssHelper.GetProjectBase();
 		dlg.m_strUser = m_strVssUser;          // BSP - Add VSS user name to dialog box
 		dlg.m_strPassword = m_strVssPassword;
@@ -185,7 +185,7 @@ bool SourceControl::SaveToVersionControl(const String& strSavePath)
 		CVssPromptDlg dlg;
 		CRegKeyEx reg;
 
-		dlg.m_strMessage = string_format_string1(_("Save changes to %1?"), strSavePath);
+		dlg.m_strMessage = strutils::format_string1(_("Save changes to %1?"), strSavePath);
 		dlg.m_strProject = m_vssHelper.GetProjectBase();
 		dlg.m_strUser = m_strVssUser;          // BSP - Add VSS user name to dialog box
 		dlg.m_strPassword = m_strVssPassword;
@@ -243,8 +243,8 @@ bool SourceControl::SaveToVersionControl(const String& strSavePath)
 
 		_tcscpy_safe(buffer1, strSavePath.c_str());
 		_tcscpy_safe(buffer2, m_vssHelper.GetProjectBase().c_str());
-		_tcslwr(buffer1);
-		_tcslwr(buffer2);
+		_tcslwr_s(buffer1, nBufferSize);
+		_tcslwr_s(buffer2, nBufferSize);
 
 		//make sure they both have \\ instead of /
 		_tcscpy_safe(buffer1, paths::ToWindowsPath(buffer1).c_str());
@@ -281,7 +281,7 @@ bool SourceControl::SaveToVersionControl(const String& strSavePath)
 			CMyComBSTR bstrLocalSpec;
 			vssi->get_LocalSpec(&bstrLocalSpec);
 			// BSP - ...and compare it to the directory WinMerge is using.
-			if (string_compare_nocase(ucr::toTString(bstrLocalSpec.m_str), strSavePath))
+			if (strutils::compare_nocase(ucr::toTString(bstrLocalSpec.m_str), strSavePath))
 			{
 				// BSP - if the directories are different, let the user confirm the CheckOut
 				int iRes = AppMsgBox::warning(_("The VSS Working Folder and the location of the current file do not match. Continue?"), 
@@ -385,8 +385,8 @@ void SourceControl::CheckinToClearCase(const String &strDestinationPath)
 	std::string vssPath = ucr::toUTF8(GetOptionsMgr()->GetString(OPT_VSS_PATH));
 	try
 	{
-		ProcessHandle hVss(Process::launch(vssPath, args));
-		int code = Process::wait(hVss);
+		ProcessHandle hVss1(Process::launch(vssPath, args));
+		int code = Process::wait(hVss1);
 		if (code != 0)
 		{
 			if (AppMsgBox::warning(_("Versioning System returned an error while attempting to check in the file.\n Please, check config spec of used view.\n Undo checkout operation?"),
@@ -397,8 +397,8 @@ void SourceControl::CheckinToClearCase(const String &strDestinationPath)
 				args.push_back("-rm");
 				format(sname_utf8, "\"%s\"", ucr::toUTF8(sname));
 				args.push_back(sname_utf8);
-				ProcessHandle hVss(Process::launch(vssPath, args));
-				code = Process::wait(hVss);
+				ProcessHandle hVss2(Process::launch(vssPath, args));
+				code = Process::wait(hVss2);
 				if (code != 0)
 				{
 					AppErrorMessageBox(_("Versioning System returned an error while attempting to undo checkout the file.\n Please, check config spec of used view. "));

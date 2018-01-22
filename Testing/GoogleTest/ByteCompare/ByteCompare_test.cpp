@@ -31,8 +31,8 @@ namespace
 	{
 		FilePair(const std::string& left, const std::string& right)
 		{
-			filedata[0].desc = _open(left.c_str(),  O_RDONLY | O_BINARY, _S_IREAD);
-			filedata[1].desc = _open(right.c_str(), O_RDONLY | O_BINARY, _S_IREAD);
+			_sopen_s(&filedata[0].desc, left.c_str(),  O_RDONLY | O_BINARY, _SH_DENYWR, _S_IREAD);
+			_sopen_s(&filedata[1].desc, right.c_str(), O_RDONLY | O_BINARY, _SH_DENYWR, _S_IREAD);
 		}
 
 		~FilePair()
@@ -121,7 +121,7 @@ namespace
 		bc.SetFileData(2, pair.filedata);
 
 		bc.SetCompareOptions(option);
-		EXPECT_EQ(DIFFCODE::BIN|DIFFCODE::DIFF, bc.CompareFiles(pair.location));
+		EXPECT_EQ(DIFFCODE::BIN|DIFFCODE::BINSIDE1|DIFFCODE::BINSIDE2|DIFFCODE::DIFF, bc.CompareFiles(pair.location));
 		FileTextStats stats[2];
 		bc.GetTextStats(0, &stats[0]);
 		bc.GetTextStats(1, &stats[1]);

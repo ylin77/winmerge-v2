@@ -59,12 +59,12 @@ AppName=WinMerge
 AppVersion={#AppVersion}
 AppVerName=WinMerge {#AppVersion}
 AppPublisher=Thingamahoochie Software
-AppPublisherURL=http://www.geocities.co.jp/SiliconValley-SanJose/8165/
-AppSupportURL=http://www.geocities.co.jp/SiliconValley-SanJose/8165/
-AppUpdatesURL=http://www.geocities.co.jp/SiliconValley-SanJose/8165/
+AppPublisherURL=http://WinMerge.org/
+AppSupportURL=http://WinMerge.org/
+AppUpdatesURL=http://WinMerge.org/
 
 ; Installer executable's version resource info
-VersionInfoCompany=http://www.geocities.co.jp/SiliconValley-SanJose/8165/
+VersionInfoCompany=http://winmerge.org
 VersionInfoDescription=WinMerge Installer
 VersionInfoVersion={#AppVersion}
 
@@ -114,8 +114,8 @@ ChangesEnvironment=true
 OutputDir=..\..\Build
 AlwaysShowComponentsList=true
 
-SignTool=signbat $f
-SignedUninstaller=yes
+;SignTool=signbat $f
+;SignedUninstaller=yes
 
 [Languages]
 ;Inno Setup's Native Language
@@ -419,15 +419,15 @@ Source: ..\..\Build\MergeUnicodeRelease\WinMergeU.exe; DestDir: {app}; Flags: pr
 Source: ..\..\Docs\Users\Files.txt; DestDir: {app}; Flags: promptifolder; Components: Core
 
 ; Shell extension
-Source: ..\..\Build\ShellExtensionUnicode Release MinDependency\ShellExtensionU.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder; MinVersion: 0, 4; Check: not IsWin64
+Source: ..\..\Build\ShellExtension\ShellExtensionU.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder; MinVersion: 0, 4; Check: not IsWin64
 ; 64-bit version of ShellExtension
-Source: ..\..\Build\X64\ShellExtensionUnicode Release MinDependency\ShellExtensionX64.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder 64bit; MinVersion: 0,5.01.2600; Check: IsWin64
+Source: ..\..\Build\ShellExtension\ShellExtensionX64.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder 64bit; MinVersion: 0,5.01.2600; Check: IsWin64
 
 ;Please do not reorder the 7z Dlls by version they compress better ordered by platform and then by version
-Source: ..\..\Build\MergeUnicodeRelease\Merge7z\Merge7z1604U.dll; DestDir: {app}\Merge7z; Flags: promptifolder; MinVersion: 0, 4; Components: ArchiveSupport
-Source: ..\..\Build\MergeUnicodeRelease\Merge7z\7z.dll; DestDir: {app}\Merge7z; Flags: promptifolder; MinVersion: 0, 4; Components: ArchiveSupport
-Source: ..\..\Build\MergeUnicodeRelease\Merge7z\*.txt; DestDir: {app}\Merge7z; Flags: promptifolder; MinVersion: 0, 4; Components: ArchiveSupport
-Source: ..\..\Build\MergeUnicodeRelease\Merge7z\Lang\*.txt; DestDir: {app}\Merge7z\Lang; Flags: promptifolder; MinVersion: 0, 4; Components: ArchiveSupport
+Source: ..\..\Build\Merge7z\Merge7z1604U.dll; DestDir: {app}\Merge7z; Flags: promptifolder; MinVersion: 0, 4; Components: ArchiveSupport
+Source: ..\..\Build\Merge7z\7z.dll; DestDir: {app}\Merge7z; Flags: promptifolder; MinVersion: 0, 4; Components: ArchiveSupport
+Source: ..\..\Build\Merge7z\*.txt; DestDir: {app}\Merge7z; Flags: promptifolder; MinVersion: 0, 4; Components: ArchiveSupport
+Source: ..\..\Build\Merge7z\Lang\*.txt; DestDir: {app}\Merge7z\Lang; Flags: promptifolder; MinVersion: 0, 4; Components: ArchiveSupport
 
 ; MergeLang.dll - translation helper dll
 Source: ..\..\Build\MergeUnicodeRelease\MergeLang.dll; DestDir: {app}; Flags: promptifolder ignoreversion; Components: Core
@@ -462,7 +462,6 @@ Source: ..\..\Translations\WinMerge\Hungarian.po; DestDir: {app}\Languages; Comp
 Source: ..\..\Translations\WinMerge\Italian.po; DestDir: {app}\Languages; Components: Languages\Italian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Translations\WinMerge\Japanese.po; DestDir: {app}\Languages; Components: Languages\Japanese; Flags: ignoreversion comparetimestamp
 Source: ..\..\Translations\Docs\Readme\ReadMe-Japanese.txt; DestDir: {app}\Docs; Components: Languages\Japanese
-Source: ..\..\Build\Manual\htmlhelp\WinMerge_ja.chm; DestDir: {app}\Docs; Components: Languages\Japanese
 Source: ..\..\Translations\WinMerge\Korean.po; DestDir: {app}\Languages; Components: Languages\Korean; Flags: ignoreversion comparetimestamp
 Source: ..\..\Translations\WinMerge\Norwegian.po; DestDir: {app}\Languages; Components: Languages\Norwegian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Translations\WinMerge\Persian.po; DestDir: {app}\Languages; Components: Languages\Persian; Flags: ignoreversion comparetimestamp
@@ -503,37 +502,36 @@ Source: ..\..\Plugins\dlls\CompareMSExcelFiles.sct; DestDir: {app}\MergePlugins;
 Source: ..\..\Plugins\dlls\CompareMSWordFiles.sct; DestDir: {app}\MergePlugins; Flags: IgnoreVersion CompareTimeStamp; Components: Plugins
 Source: ..\..\Plugins\dlls\CompareMSPowerPointFiles.sct; DestDir: {app}\MergePlugins; Flags: IgnoreVersion CompareTimeStamp; Components: Plugins
 Source: ..\..\Plugins\dlls\ApplyPatch.sct; DestDir: {app}\MergePlugins; Flags: IgnoreVersion CompareTimeStamp; Components: Plugins
-Source: ..\..\Plugins\dlls\IgnoreColumns.dll; DestDir: {app}\MergePlugins; Flags: promptifolder; Components: Plugins
-Source: ..\..\Plugins\dlls\IgnoreCommentsC.dll; DestDir: {app}\MergePlugins; Flags: promptifolder; Components: Plugins
-Source: ..\..\Plugins\dlls\IgnoreFieldsComma.dll; DestDir: {app}\MergePlugins; Flags: promptifolder; Components: Plugins
-Source: ..\..\Plugins\dlls\IgnoreFieldsTab.dll; DestDir: {app}\MergePlugins; Flags: promptifolder; Components: Plugins
-Source: ..\..\Plugins\dlls\IgnoreLeadingLineNumbers.dll; DestDir: {app}\MergePlugins; Flags: promptifolder; Components: Plugins
+Source: ..\..\Plugins\dlls\IgnoreColumns.dll; DestDir: {app}\MergePlugins; Flags: ignoreversion comparetimestamp; Components: Plugins
+Source: ..\..\Plugins\dlls\IgnoreCommentsC.dll; DestDir: {app}\MergePlugins; Flags: ignoreversion comparetimestamp; Components: Plugins
+Source: ..\..\Plugins\dlls\IgnoreFieldsComma.dll; DestDir: {app}\MergePlugins; Flags: ignoreversion comparetimestamp; Components: Plugins
+Source: ..\..\Plugins\dlls\IgnoreFieldsTab.dll; DestDir: {app}\MergePlugins; Flags: ignoreversion comparetimestamp; Components: Plugins
+Source: ..\..\Plugins\dlls\IgnoreLeadingLineNumbers.dll; DestDir: {app}\MergePlugins; Flags: ignoreversion comparetimestamp; Components: Plugins
 
 ;Frhed
-Source: ..\..\Externals\frhed\GPL.txt; DestDir: {app}\Frhed; Components: Frhed
-;Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\frhed.exe; DestDir: {app}\Frhed; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\hekseditU.dll; DestDir: {app}\Frhed; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Docs\ChangeLog.txt; DestDir: {app}\Frhed\Docs; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Docs\Contributors.txt; DestDir: {app}\Frhed\Docs; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Docs\History.txt; DestDir: {app}\Frhed\Docs; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Docs\Links.txt; DestDir: {app}\Frhed\Docs; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Docs\Sample.tpl  ; DestDir: {app}\Frhed\Docs; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Languages\de.po; DestDir: {app}\Frhed\Languages; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Languages\fr.po; DestDir: {app}\Frhed\Languages; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Languages\ja.po; DestDir: {app}\Frhed\Languages; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Languages\nl.po; DestDir: {app}\Frhed\Languages; Components: Frhed
-Source: ..\..\Externals\frhed\Build\FRHED_vc10\Win32\UnicodeRelease\Languages\heksedit.lng; DestDir: {app}\Frhed\Languages; Components: Frhed
+Source: ..\..\Build\Frhed\GPL.txt; DestDir: {app}\Frhed; Components: Frhed
+;Source: ..\..\Build\Frhed\frhed.exe; DestDir: {app}\Frhed; Components: Frhed
+Source: ..\..\Build\Frhed\hekseditU.dll; DestDir: {app}\Frhed; Flags: ignoreversion comparetimestamp; Components: Frhed
+Source: ..\..\Build\Frhed\Docs\ChangeLog.txt; DestDir: {app}\Frhed\Docs; Components: Frhed
+Source: ..\..\Build\Frhed\Docs\Contributors.txt; DestDir: {app}\Frhed\Docs; Components: Frhed
+Source: ..\..\Build\Frhed\Docs\History.txt; DestDir: {app}\Frhed\Docs; Components: Frhed
+Source: ..\..\Build\Frhed\Docs\Links.txt; DestDir: {app}\Frhed\Docs; Components: Frhed
+Source: ..\..\Build\Frhed\Docs\Sample.tpl  ; DestDir: {app}\Frhed\Docs; Components: Frhed
+Source: ..\..\Build\Frhed\Languages\de.po; DestDir: {app}\Frhed\Languages; Components: Frhed
+Source: ..\..\Build\Frhed\Languages\fr.po; DestDir: {app}\Frhed\Languages; Components: Frhed
+Source: ..\..\Build\Frhed\Languages\ja.po; DestDir: {app}\Frhed\Languages; Components: Frhed
+Source: ..\..\Build\Frhed\Languages\nl.po; DestDir: {app}\Frhed\Languages; Components: Frhed
+Source: ..\..\Build\Frhed\Languages\heksedit.lng; DestDir: {app}\Frhed\Languages; Components: Frhed
 
 ;WinIMerge
-Source: ..\..\Externals\winimerge\GPL.txt; DestDir: {app}\WinIMerge; Components: WinIMerge
-Source: ..\..\Externals\winimerge\freeimage-license-gplv2.txt; DestDir: {app}\WinIMerge; Components: WinIMerge
-;Source: ..\..\Externals\winimerge\Build\Release\WinIMerge.exe; DestDir: {app}\WinIMerge; Components: WinIMerge
-Source: ..\..\Externals\winimerge\Build\Release\WinIMergeLib.dll; DestDir: {app}\WinIMerge; Components: WinIMerge
-Source: {#VS120COMNTOOLS}\..\..\VC\redist\x86\Microsoft.VC120.OpenMP\vcomp120.dll; DestDir: {app}; Components: WinIMerge
-Source: {#VS140COMNTOOLS}\..\..\VC\redist\x86\Microsoft.VC140.OpenMP\vcomp140.dll; DestDir: {app}; Components: WinIMerge
+Source: ..\..\Build\WinIMerge\GPL.txt; DestDir: {app}\WinIMerge; Components: WinIMerge
+Source: ..\..\Build\WinIMerge\freeimage-license-gplv2.txt; DestDir: {app}\WinIMerge; Components: WinIMerge
+;Source: ..\..\Build\WinIMerge\bin\WinIMerge.exe; DestDir: {app}\WinIMerge; Components: WinIMerge
+Source: ..\..\Build\WinIMerge\bin\WinIMergeLib.dll; DestDir: {app}\WinIMerge; Flags: ignoreversion comparetimestamp; Components: WinIMerge
+Source: ..\..\Build\WinIMerge\bin\vcomp140.dll; DestDir: {app}; Components: WinIMerge
 
 ;GnuWin32 Patch for Windows
-Source: C:\Program Files\WinMerge\GnuWin32\*.*; DestDir: {app}\GnuWin32; Flags: recursesubdirs; Components: Patch
+Source: ..\..\Build\GnuWin32\*.*; DestDir: {app}\GnuWin32; Flags: recursesubdirs; Components: Patch
 
 [Dirs]
 Name: "{app}\MergePlugins"
@@ -544,7 +542,7 @@ Name: {group}\WinMerge; Filename: {app}\{code:ExeName}; AppUserModelID: "Thingam
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe.txt; IconFileName: {win}\NOTEPAD.EXE
 Name: {group}\{cm:UsersGuide}; Filename: {app}\Docs\WinMerge.chm
 Name: {group}\{cm:UninstallProgram,WinMerge}; Filename: {uninstallexe}
-Name: {group}\{cm:ProgramOnTheWeb,WinMerge}; Filename: http://www.geocities.co.jp/SiliconValley-SanJose/8165/
+Name: {group}\{cm:ProgramOnTheWeb,WinMerge}; Filename: http://winmerge.org
 
 ;Link to translated ReadMe in Start Menu
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Basque.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Basque

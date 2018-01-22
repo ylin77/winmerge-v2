@@ -41,7 +41,6 @@ static int f_nDefaultCodepage = GetACP();
  */
 int Ucs4_to_Utf8(unsigned unich, unsigned char * utf8)
 {
-#pragma warning(disable: 4244) // possible loss of data due to type conversion
 	if (unich <= 0x7f)
 	{
 		utf8[0] = (unsigned char)unich;
@@ -94,7 +93,6 @@ int Ucs4_to_Utf8(unsigned unich, unsigned char * utf8)
 		utf8[0] = '?';
 		return 1;
 	}
-#pragma warning(default: 4244) // possible loss of data due to type conversion
 }
 
 /**
@@ -137,7 +135,7 @@ int Utf8len_fromCodepoint(unsigned ch)
  */
 size_t stringlen_of_utf8(const char* text, size_t size)
 {
-	unsigned len = 0;
+	size_t len = 0;
 	for (size_t i = 0; i < size;)
 	{
 		int chlen = Utf8len_fromLeadByte(text[i]);
@@ -207,7 +205,6 @@ unsigned GetUtf8Char(unsigned char * str)
  */
 int to_utf8_advance(unsigned u, unsigned char * &lpd)
 {
-#pragma warning(disable: 4244) // possible loss of data due to type conversion
 	if (u < 0x80)
 	{
 		*lpd++ = u;
@@ -258,7 +255,6 @@ int to_utf8_advance(unsigned u, unsigned char * &lpd)
 		*lpd++ = '?';
 		return 1;
 	}
-#pragma warning(default: 4244) // possible loss of data due to type conversion
 }
 
 /**
@@ -482,7 +478,7 @@ bool maketstring(String & str, const char* lpd, size_t len, int codepage, bool *
 	LPWSTR wbuff = &*str.begin();
 	if (codepage == CP_ACP || IsValidCodePage(codepage))
 	{
-		int n = MultiByteToWideChar(codepage, flags, lpd, len, wbuff, wlen - 1);
+		int n = MultiByteToWideChar(codepage, flags, lpd, static_cast<int>(len), wbuff, static_cast<int>(wlen - 1));
 		if (n)
 		{
 			/*
@@ -516,7 +512,7 @@ bool maketstring(String & str, const char* lpd, size_t len, int codepage, bool *
 		{
 			if (GetLastError() == ERROR_INVALID_FLAGS)
 			{
-				int n = MultiByteToWideChar(codepage, 0, lpd, len, wbuff, wlen-1);
+				n = MultiByteToWideChar(codepage, 0, lpd, static_cast<int>(len), wbuff, static_cast<int>(wlen-1));
 				if (n)
 				{
 					/* NB: MultiByteToWideChar is documented as only zero-terminating 
@@ -547,7 +543,7 @@ bool maketstring(String & str, const char* lpd, size_t len, int codepage, bool *
 				*lossy = true;
 				flags = 0;
 				// wlen & wbuff are still fine
-				n = MultiByteToWideChar(codepage, flags, lpd, len, wbuff, wlen-1);
+				n = MultiByteToWideChar(codepage, flags, lpd, static_cast<int>(len), wbuff, static_cast<int>(wlen-1));
 				if (n)
 				{
 					try
@@ -691,14 +687,14 @@ int CrossConvert(const char* src, unsigned srclen, char* dest, unsigned destsize
 	if (cpin == CP_UCS2LE)
 	{
 		if (srclen == -1)
-			srclen = wcslen((wchar_t *)src) * sizeof(wchar_t);
+			srclen = static_cast<unsigned>(wcslen((wchar_t *)src) * sizeof(wchar_t));
 		memcpy(wbuff.get(), src, srclen);
 		n = srclen / sizeof(wchar_t);
 	}
 	else if (cpin == CP_UCS2BE)
 	{
 		if (srclen == -1)
-			srclen = wcslen((wchar_t *)src) * sizeof(wchar_t);
+			srclen = static_cast<unsigned>(wcslen((wchar_t *)src) * sizeof(wchar_t));
 		_swab((char *)src, (char *)wbuff.get(), srclen);
 		n = srclen / sizeof(wchar_t);
 	}
@@ -817,7 +813,7 @@ unsigned char *convertTtoUTF8(LPCTSTR src, int srcbytes/* = -1*/)
 {
 	buffer buf(256);
 	convertTtoUTF8(&buf, src, srcbytes);
-	return (unsigned char *)strdup((const char *)buf.ptr);
+	return (unsigned char *)_strdup((const char *)buf.ptr);
 }
 
 TCHAR *convertUTF8toT(buffer * buf, LPCSTR src, int srcbytes/* = -1*/)
@@ -970,7 +966,7 @@ bool convert(UNICODESET unicoding1, int codepage1, const unsigned char * src, si
 	{
 		// simple byte swap
 		dest->resize(srcbytes + 2);
-		for (int i = 0; i < srcbytes; i += 2)
+		for (size_t i = 0; i < srcbytes; i += 2)
 		{
 			// Byte-swap into destination
 			dest->ptr[i] = src[i+1];
@@ -999,10 +995,10 @@ bool convert(UNICODESET unicoding1, int codepage1, const unsigned char * src, si
 		if (destcp == CP_ACP || IsValidCodePage(destcp))
 		{
 			DWORD flags = 0;
-			int bytes = WideCharToMultiByte(destcp, flags, (LPCWSTR)src, srcbytes/2, 0, 0, NULL, NULL);
+			int bytes = WideCharToMultiByte(destcp, flags, (LPCWSTR)src, static_cast<int>(srcbytes/2), 0, 0, NULL, NULL);
 			dest->resize(bytes + 2);
 			int losses = 0;
-			bytes = WideCharToMultiByte(destcp, flags, (LPCWSTR)src, srcbytes/2, (char *)dest->ptr, dest->capacity, NULL, NULL);
+			bytes = WideCharToMultiByte(destcp, flags, (LPCWSTR)src, static_cast<int>(srcbytes/2), (char *)dest->ptr, static_cast<int>(dest->capacity), NULL, NULL);
 			dest->ptr[bytes] = 0;
 			dest->ptr[bytes+1] = 0;
 			dest->size = bytes;
@@ -1033,9 +1029,9 @@ bool convert(UNICODESET unicoding1, int codepage1, const unsigned char * src, si
 		if (srccp == CP_ACP || IsValidCodePage(srccp))
 		{
 			DWORD flags = 0;
-			int wchars = MultiByteToWideChar(srccp, flags, (LPCSTR)src, srcbytes, 0, 0);
+			int wchars = MultiByteToWideChar(srccp, flags, (LPCSTR)src, static_cast<int>(srcbytes), 0, 0);
 			dest->resize((wchars + 1) *2);
-			wchars = MultiByteToWideChar(srccp, flags, (LPCSTR)src, srcbytes, (LPWSTR)dest->ptr, dest->capacity/2);
+			wchars = MultiByteToWideChar(srccp, flags, (LPCSTR)src, static_cast<int>(srcbytes), (LPWSTR)dest->ptr, static_cast<int>(dest->capacity/2));
 			dest->ptr[wchars * 2] = 0;
 			dest->ptr[wchars * 2 + 1] = 0;
 			dest->size = wchars * 2;
@@ -1069,11 +1065,11 @@ bool convert(UNICODESET unicoding1, int codepage1, const unsigned char * src, si
  */
 static void convert(const std::wstring& from, unsigned codepage, std::string& to)
 {
-	int len = WideCharToMultiByte(codepage, 0, from.c_str(), from.length(), 0, 0, 0, 0);
+	int len = WideCharToMultiByte(codepage, 0, from.c_str(), static_cast<int>(from.length()), 0, 0, 0, 0);
 	if (len)
 	{
 		to.resize(len);
-		WideCharToMultiByte(codepage, 0, from.c_str(), from.length(), &to[0], len, NULL, NULL);
+		WideCharToMultiByte(codepage, 0, from.c_str(), static_cast<int>(from.length()), &to[0], static_cast<int>(len), NULL, NULL);
 	}
 	else
 	{
@@ -1140,16 +1136,16 @@ bool CheckForInvalidUtf8(const char *pBuffer, size_t size)
 			return true;
 		pVal2++;
 	}
-	if (size <= 3)
-		return false;
 	pVal2 = (unsigned char *)pBuffer;
 	bool bUTF8 = false;
-	for (size_t i = 0; i < (size - 3); ++i)
+	for (size_t i = 0; i < size; ++i)
 	{
 		if ((*pVal2 & 0x80) == 0x00)
 			;
 		else if ((*pVal2 & 0xE0) == 0xC0)
 		{
+			if (i >= size - 1)
+				return true;
 			pVal2++;
 			i++;
 			if ((*pVal2 & 0xC0) != 0x80)
@@ -1158,6 +1154,8 @@ bool CheckForInvalidUtf8(const char *pBuffer, size_t size)
 		}
 		else if ((*pVal2 & 0xF0) == 0xE0)
 		{
+			if (i >= size - 2)
+				return true;
 			pVal2++;
 			i++;
 			if ((*pVal2 & 0xC0) != 0x80)
@@ -1170,6 +1168,8 @@ bool CheckForInvalidUtf8(const char *pBuffer, size_t size)
 		}
 		else if ((*pVal2 & 0xF8) == 0xF0)
 		{
+			if (i >= size - 3)
+				return true;
 			pVal2++;
 			i++;
 			if ((*pVal2 & 0xC0) != 0x80)

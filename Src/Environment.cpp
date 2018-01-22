@@ -7,7 +7,10 @@
 #define POCO_NO_UNWINDOWS 1
 #include "Environment.h"
 #include <windows.h>
+#pragma warning (push)			// prevent "warning C4091: 'typedef ': ignored on left of 'tagGPFIDL_FLAGS' when no variable is declared"
+#pragma warning (disable:4091)	// VC bug when using XP enabled toolsets.
 #include <shlobj.h>
+#pragma warning (pop)
 #include <sstream>
 #include <Poco/Path.h>
 #include <Poco/Process.h>
@@ -81,7 +84,7 @@ String GetTempChildPath()
 	String path;
 	do
 	{
-		path = paths::ConcatPath(GetTemporaryPath(), string_format(_T("%08x"), rand()));
+		path = paths::ConcatPath(GetTemporaryPath(), strutils::format(_T("%08x"), rand()));
 	} while (paths::IsDirectory(path) || !paths::CreateIfNeeded(path));
 	return path;
 }

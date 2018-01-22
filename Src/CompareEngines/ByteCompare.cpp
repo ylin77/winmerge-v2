@@ -146,7 +146,7 @@ int ByteCompare::CompareFiles(FileLocation *location)
 			{
 				// Assume our blocks are in range of int
 				int space = sizeof(buff[i])/sizeof(buff[i][0]) - (int) bfend[i];
-				int rtn = read(m_inf[i].desc, &buff[i][bfend[i]], (unsigned)space);
+				int rtn = _read(m_inf[i].desc, &buff[i][bfend[i]], (unsigned)space);
 				if (rtn == -1)
 					return DIFFCODE::CMPERR;
 				if (rtn < space)
@@ -262,11 +262,11 @@ int ByteCompare::CompareFiles(FileLocation *location)
 			bool bBin1 = (m_textStats[1].nzeros > 0);
 
 			if (bBin0 && bBin1)
-				diffcode |= DIFFCODE::BIN;
+				diffcode |= DIFFCODE::BIN | DIFFCODE::BINSIDE1 | DIFFCODE::BINSIDE2;
 			else if (bBin0)
-				diffcode |= DIFFCODE::BINSIDE1;
+				diffcode |= DIFFCODE::BIN | DIFFCODE::BINSIDE1;
 			else if (bBin1)
-				diffcode |= DIFFCODE::BINSIDE2;
+				diffcode |= DIFFCODE::BIN | DIFFCODE::BINSIDE2;
 			else
 				diffcode |= DIFFCODE::TEXT;
 

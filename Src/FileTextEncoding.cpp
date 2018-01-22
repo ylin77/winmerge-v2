@@ -6,7 +6,6 @@
 
 #include "FileTextEncoding.h"
 #include "unicoder.h"
-#include "codepage.h"
 
 FileTextEncoding::FileTextEncoding()
 {
@@ -31,13 +30,13 @@ void FileTextEncoding::SetCodepage(int codepage)
 	m_codepage = codepage;
 	switch (codepage)
 	{
-	case CP_UTF8:
+	case ucr::CP_UTF_8:
 		m_unicoding = ucr::UTF8;
 		break;
-	case CP_UCS2LE:
+	case ucr::CP_UCS2LE:
 		m_unicoding = ucr::UCS2LE;
 		break;
-	case CP_UCS2BE:
+	case ucr::CP_UCS2BE:
 		m_unicoding = ucr::UCS2BE;
 		break;
 	default:
@@ -54,21 +53,21 @@ void FileTextEncoding::SetUnicoding(ucr::UNICODESET unicoding)
 	case ucr::NONE:
 		switch (m_codepage)
 		{
-		case CP_UTF8:
-		case CP_UCS2LE:
-		case CP_UCS2BE:
+		case ucr::CP_UTF_8:
+		case ucr::CP_UCS2LE:
+		case ucr::CP_UCS2BE:
 			m_codepage = 0; // not sure what to do here
 			break;
 		}
 		break;
 	case ucr::UTF8:
-		m_codepage = CP_UTF8;
+		m_codepage = ucr::CP_UTF_8;
 		break;
 	case ucr::UCS2LE:
-		m_codepage = CP_UCS2LE;
+		m_codepage = ucr::CP_UCS2LE;
 		break;
 	case ucr::UCS2BE:
-		m_codepage = CP_UCS2BE;
+		m_codepage = ucr::CP_UCS2BE;
 		break;
 	}
 }
@@ -95,13 +94,13 @@ String FileTextEncoding::GetName() const
 	if (m_codepage <= 0)
 		return _T("");
 
-	if (m_codepage == CP_UTF8)
+	if (m_codepage == ucr::CP_UTF_8)
 	{
 		// We detected codepage to be UTF-8, but unicoding was not set
 		return _T("UTF-8");
 	}
 
-	return string_to_str(m_codepage);
+	return strutils::to_str(m_codepage);
 }
 
 int FileTextEncoding::Collate(const FileTextEncoding & fte1, const FileTextEncoding & fte2)
@@ -109,10 +108,10 @@ int FileTextEncoding::Collate(const FileTextEncoding & fte1, const FileTextEncod
 	if (fte1.m_unicoding > fte2.m_unicoding)
 		return 1;
 	if (fte1.m_unicoding < fte2.m_unicoding)
-		return 1;
+		return -1;
 	if (fte1.m_codepage > fte2.m_codepage)
 		return 1;
 	if (fte1.m_codepage < fte2.m_codepage)
-		return 1;
+		return -1;
 	return 0;
 }

@@ -75,7 +75,7 @@ bool SyntaxColors::GetSystemColorIndex(int nColorIndex, int * pSysIndex) const
 			*pSysIndex = COLOR_WINDOWTEXT;
 			return true;
 		case COLORINDEX_SELMARGIN:
-			*pSysIndex = COLOR_3DLIGHT;
+			*pSysIndex = COLOR_BTNFACE;
 			return true;
 		case COLORINDEX_SELTEXT:
 			*pSysIndex = COLOR_HIGHLIGHTTEXT;
@@ -156,6 +156,18 @@ void SyntaxColors::SetDefaults()
 			break;
 		case COLORINDEX_HIGHLIGHTTEXT2:
 			color = RGB (0, 0, 0);
+			break;
+		case COLORINDEX_MARKERBKGND0:
+			color = RGB (255, 255, 127);
+			break;
+		case COLORINDEX_MARKERBKGND1:
+			color = RGB (127, 255, 127);
+			break;
+		case COLORINDEX_MARKERBKGND2:
+			color = RGB (255, 127, 127);
+			break;
+		case COLORINDEX_MARKERBKGND3:
+			color = RGB (127, 127, 255);
 			break;
 		default:
 		//  return RGB(255, 0, 0);

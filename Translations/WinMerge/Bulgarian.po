@@ -100,10 +100,10 @@ msgstr "&Отвори"
 msgid "with &Registered Application"
 msgstr "с &Регистрирано Приложение"
 
-#: Merge.rc:46724E8D
+#: Merge.rc:321D741E
 #, c-format
-msgid "with &External Editor"
-msgstr "с &Външен Редактор"
+msgid "with &External Editor\tCtrl+Alt+E"
+msgstr ""
 
 #: Merge.rc:AC3AA12
 #, c-format
@@ -160,12 +160,32 @@ msgstr "&Няма"
 msgid "&Alpha Blend"
 msgstr ""
 
+#: Merge.rc:237A0532
+#, c-format
+msgid "Alpha &Blend Animation"
+msgstr ""
+
+#: Merge.rc:5806E58F
+#, c-format
+msgid "Dragging &Mode"
+msgstr ""
+
+#: Merge.rc:43017E45
+#, c-format
+msgid "&Move"
+msgstr "&Премести"
+
+#: Merge.rc:5A9A713A
+#, c-format
+msgid "&Adjust Offset"
+msgstr ""
+
 #: Merge.rc:100AAFAC
 #, c-format
 msgid "&Set Background Color"
 msgstr ""
 
-#: Merge.rc:43017E45
+#: Merge.rc:43017E46
 #, c-format
 msgid "&File"
 msgstr "&Файл"
@@ -220,7 +240,7 @@ msgstr "< Празен >"
 msgid "E&xit"
 msgstr "&Изход"
 
-#: Merge.rc:43017E46
+#: Merge.rc:43017E47
 #, c-format
 msgid "&Edit"
 msgstr "&Редактиране"
@@ -230,7 +250,7 @@ msgstr "&Редактиране"
 msgid "&Options..."
 msgstr "&Настройки..."
 
-#: Merge.rc:43017E47
+#: Merge.rc:43017E48
 #, c-format
 msgid "&View"
 msgstr "И&зглед"
@@ -250,7 +270,7 @@ msgstr "&Малък"
 msgid "&Big"
 msgstr "&Голям"
 
-#: Merge.rc:43017E48
+#: Merge.rc:43017E49
 #, c-format
 msgid "&Huge"
 msgstr ""
@@ -355,7 +375,7 @@ msgstr "Подреди &вертикално"
 msgid "&Cascade"
 msgstr "Подреди &каскадно"
 
-#: Merge.rc:43017E49
+#: Merge.rc:43017E4A
 #, c-format
 msgid "&Help"
 msgstr "&Помощ"
@@ -365,9 +385,14 @@ msgstr "&Помощ"
 msgid "&WinMerge Help\tF1"
 msgstr "&WinMerge Помощ\tF1"
 
-#: Merge.rc:3938FFC2
+#: Merge.rc:1B17601E
 #, c-format
-msgid "&Check For Updates"
+msgid "R&elease Notes"
+msgstr ""
+
+#: Merge.rc:6E470BE7
+#, c-format
+msgid "&Translations"
 msgstr ""
 
 #: Merge.rc:1C6125F4
@@ -380,7 +405,7 @@ msgstr "Конфигурация"
 msgid "&GNU General Public License"
 msgstr "&GNU Публичен лиценз"
 
-#: Merge.rc:3938FFC3
+#: Merge.rc:3938FFC2
 #, c-format
 msgid "&About WinMerge..."
 msgstr "&За WinMerge..."
@@ -449,6 +474,26 @@ msgstr "Покажи &Пропуснатите неща"
 #, c-format
 msgid "S&how Binary Files"
 msgstr "Покажи Дв&оичните файлове"
+
+#: Merge.rc:5A9A713B
+#, c-format
+msgid "&3-way Compare"
+msgstr ""
+
+#: Merge.rc:200AD0D1
+#, c-format
+msgid "Show &Left Only Different Items"
+msgstr ""
+
+#: Merge.rc:4899EBE1
+#, c-format
+msgid "Show &Middle Only Different Items"
+msgstr ""
+
+#: Merge.rc:614F49A9
+#, c-format
+msgid "Show &Right Only Different Items"
+msgstr ""
 
 #: Merge.rc:6F833C17
 #, c-format
@@ -560,7 +605,7 @@ msgstr "&Нагласи колоните..."
 msgid "Generate &Report..."
 msgstr "Създай &Отчет..."
 
-#: Merge.rc:6E470BE7
+#: Merge.rc:6E470BE8
 #, c-format
 msgid "&Save\tCtrl+S"
 msgstr "&Запиши\tCtrl+S"
@@ -655,12 +700,12 @@ msgstr "&XML"
 msgid "&Binary"
 msgstr ""
 
-#: Merge.rc:6E470BE8
+#: Merge.rc:6E470BE9
 #, c-format
 msgid "&Undo\tCtrl+Z"
 msgstr "&Отмени\tCtrl+Z"
 
-#: Merge.rc:6E470BE9
+#: Merge.rc:6E470BEA
 #, c-format
 msgid "&Redo\tCtrl+Y"
 msgstr "Въ&рни\tCtrl+Y"
@@ -670,12 +715,12 @@ msgstr "Въ&рни\tCtrl+Y"
 msgid "Cu&t\tCtrl+X"
 msgstr "&Изрежи\tCtrl+X"
 
-#: Merge.rc:6E470BEA
+#: Merge.rc:6E470BEB
 #, c-format
 msgid "&Copy\tCtrl+C"
 msgstr "&Копирай\tCtrl+C"
 
-#: Merge.rc:5A9A713A
+#: Merge.rc:5A9A713C
 #, c-format
 msgid "&Paste\tCtrl+V"
 msgstr "По&стави\tCtrl+V"
@@ -694,6 +739,11 @@ msgstr "Н&амери...\tCtrl+F"
 #, c-format
 msgid "Repla&ce...\tCtrl+H"
 msgstr "Замес&ти...\tCtrl+H"
+
+#: Merge.rc:4B91C2D1
+#, c-format
+msgid "&Marker...\tCtrl+Shift+M"
+msgstr ""
 
 #: Merge.rc:669F87F4
 #, c-format
@@ -715,7 +765,7 @@ msgstr "&Отметки"
 msgid "&Toggle Bookmark\tCtrl+F2"
 msgstr "&Прикрепи отметка\tCtrl+F2"
 
-#: Merge.rc:3938FFC4
+#: Merge.rc:3938FFC3
 #, c-format
 msgid "&Next Bookmark\tF2"
 msgstr "&Следваща отметка\tF2"
@@ -756,7 +806,7 @@ msgstr "Нормален"
 msgid "Syntax Highlight"
 msgstr "Оцветяване на синтаксиса"
 
-#: Merge.rc:6E470BEB
+#: Merge.rc:6E470BEC
 #, c-format
 msgid "&Diff Context"
 msgstr ""
@@ -1056,11 +1106,6 @@ msgstr "Десен към ляв (%1 от %2)"
 msgid "Right to... (%1 of %2)"
 msgstr "Десен към... (%1 от %2)"
 
-#: Merge.rc:43017E4A
-#, c-format
-msgid "&Move"
-msgstr "&Премести"
-
 #: Merge.rc:89AF4FA
 #, c-format
 msgid "&Delete"
@@ -1105,6 +1150,16 @@ msgstr "&Скрий"
 #, c-format
 msgid "&Open Left"
 msgstr "&Отвори в ляво"
+
+#: Merge.rc:46724E8D
+#, c-format
+msgid "with &External Editor"
+msgstr "с &Външен Редактор"
+
+#: Merge.rc:5A9A713D
+#, c-format
+msgid "&Parent Folder"
+msgstr ""
 
 #: Merge.rc:761E6872
 #, c-format
@@ -1216,7 +1271,7 @@ msgstr "Копирай &името"
 msgid "Prediffer Settings"
 msgstr "Налични настройки"
 
-#: Merge.rc:6E470BEC
+#: Merge.rc:6E470BED
 #, c-format
 msgid "&No prediffer"
 msgstr "&Без налични"
@@ -1346,19 +1401,29 @@ msgstr "Дарители"
 msgid "Select Files or Folders"
 msgstr "Избери Файл или директория..."
 
+#: Merge.rc:43017E4D
+#, c-format
+msgid "&1st:"
+msgstr ""
+
 #: Merge.rc:68816EE7
 #, c-format
 msgid "&Browse..."
 msgstr "&Потърси..."
+
+#: Merge.rc:43017E4E
+#, c-format
+msgid "&2nd:"
+msgstr ""
 
 #: Merge.rc:78E0CE0E
 #, c-format
 msgid "B&rowse..."
 msgstr "Преглед"
 
-#: Merge.rc:6E470BED
+#: Merge.rc:78B3B626
 #, c-format
-msgid "&3(Optional):"
+msgid "&3rd(Optional):"
 msgstr ""
 
 #: Merge.rc:78E0CE0F
@@ -1596,7 +1661,7 @@ msgstr "&ОК"
 msgid "Replace"
 msgstr "Замени"
 
-#: Merge.rc:1B17601E
+#: Merge.rc:1B17601F
 #, c-format
 msgid "Re&place with:"
 msgstr "&Замени с:"
@@ -1631,6 +1696,31 @@ msgstr "&Замени"
 msgid "Replace &All"
 msgstr "Зам. &всичко"
 
+#: Merge.rc:2FC0BA7B
+#, c-format
+msgid "Markers"
+msgstr ""
+
+#: Merge.rc:61E8009D
+#, c-format
+msgid "Enable &Markers"
+msgstr ""
+
+#: Merge.rc:24A380
+#, c-format
+msgid "New"
+msgstr "Нов"
+
+#: Merge.rc:3938FFC4
+#, c-format
+msgid "&Background color:"
+msgstr ""
+
+#: Merge.rc:1D2E49FB
+#, c-format
+msgid "&Apply"
+msgstr "&Приложи"
+
 #: Merge.rc:4C3E0A2D
 #, c-format
 msgid "CheckOut"
@@ -1660,11 +1750,6 @@ msgstr "Включи филтри за ред"
 #, c-format
 msgid "Regular Expressions (one per line):"
 msgstr "Правилни изрази (по един на ред):"
-
-#: Merge.rc:24A380
-#, c-format
-msgid "New"
-msgstr "Нов"
 
 #: Merge.rc:3ECBF05
 #, c-format
@@ -1761,7 +1846,7 @@ msgstr "&Сложи изтритите файлове в Кошчето"
 msgid "&External editor:"
 msgstr "&Външен редактор:"
 
-#: Merge.rc:78B3B626
+#: Merge.rc:78B3B627
 #, c-format
 msgid "&Filter folder:"
 msgstr "&Папка на филтрите:"
@@ -1796,12 +1881,12 @@ msgstr "Файл&1:"
 msgid "File&2:"
 msgstr "Файл&2:"
 
-#: Merge.rc:43017E4D
+#: Merge.rc:43017E4F
 #, c-format
 msgid "&Swap"
 msgstr "&Размени"
 
-#: Merge.rc:4B91C2D1
+#: Merge.rc:4B91C2D2
 #, c-format
 msgid "&Append to existing file"
 msgstr "&Приложи към съществуващ файл"
@@ -1936,7 +2021,7 @@ msgstr "Ре&д"
 msgid "&Difference"
 msgstr "&Разлика"
 
-#: Merge.rc:1D2E49FB
+#: Merge.rc:1D2E49FC
 #, c-format
 msgid "&Go To"
 msgstr "&Отиди"
@@ -1956,7 +2041,7 @@ msgstr "Празни места"
 msgid "&Compare"
 msgstr "&Сравняване"
 
-#: Merge.rc:5A9A713B
+#: Merge.rc:5A9A713E
 #, c-format
 msgid "&Ignore change"
 msgstr "&Игнорирай промените"
@@ -2261,6 +2346,31 @@ msgstr "Потребител 2:"
 msgid "Bold"
 msgstr "Удебелен"
 
+#: Merge.rc:2CEE4749
+#, c-format
+msgid "Marker colors"
+msgstr ""
+
+#: Merge.rc:56BD1FBA
+#, c-format
+msgid "Search Marker:"
+msgstr ""
+
+#: Merge.rc:7B76381B
+#, c-format
+msgid "User Defined Marker1:"
+msgstr ""
+
+#: Merge.rc:7B76381C
+#, c-format
+msgid "User Defined Marker2:"
+msgstr ""
+
+#: Merge.rc:7B76381D
+#, c-format
+msgid "User Defined Marker3:"
+msgstr ""
+
 #: Merge.rc:387F7980
 #, c-format
 msgid "Folder Compare Report"
@@ -2386,12 +2496,12 @@ msgstr "Общо:"
 msgid "Close"
 msgstr "Затвори"
 
-#: Merge.rc:2FC0BA7B
+#: Merge.rc:2FC0BA7C
 #, c-format
 msgid "Middle:"
 msgstr ""
 
-#: Merge.rc:2CEE4749
+#: Merge.rc:2CEE474A
 #, c-format
 msgid "Missing Left:"
 msgstr ""
@@ -2421,7 +2531,7 @@ msgstr "(Промени)"
 msgid "Select Codepage for"
 msgstr "Изберете кодировка за"
 
-#: Merge.rc:5A9A713C
+#: Merge.rc:5A9A713F
 #, c-format
 msgid "&File Loading:"
 msgstr "&Зареждане на файл:"
@@ -2435,11 +2545,6 @@ msgstr "Записване на файл:"
 #, c-format
 msgid "&Use same codepage for both"
 msgstr "&Използвай еднаква кодировка и за двете"
-
-#: Merge.rc:1D2E49FC
-#, c-format
-msgid "&Apply"
-msgstr "&Приложи"
 
 #: Merge.rc:89AF4FE
 #, c-format
@@ -2471,7 +2576,7 @@ msgstr "&Име на папка"
 msgid "Result:"
 msgstr "Резултат:"
 
-#: Merge.rc:43017E4E
+#: Merge.rc:43017E50
 #, c-format
 msgid "&Test"
 msgstr "&Тествай"
@@ -2505,6 +2610,11 @@ msgstr "Нормален текст:"
 #, c-format
 msgid "Selection:"
 msgstr "Избран:"
+
+#: Merge.rc:2FC0BA7D
+#, c-format
+msgid "Margin:"
+msgstr ""
 
 #: Merge.rc:D109E01
 #, c-format
@@ -2551,7 +2661,7 @@ msgstr "Резервни файлове"
 msgid "Create backup files in:"
 msgstr "Създай резервни файлове в:"
 
-#: Merge.rc:78B3B627
+#: Merge.rc:78B3B628
 #, c-format
 msgid "&Folder compare"
 msgstr "Сравняване на &Папки"
@@ -2626,7 +2736,7 @@ msgstr "Не"
 msgid "Plugins"
 msgstr ""
 
-#: Merge.rc:78B3B628
+#: Merge.rc:78B3B629
 #, c-format
 msgid "&Enable plugins"
 msgstr ""
@@ -2696,6 +2806,11 @@ msgstr ""
 msgid "&Quick compare limit (MB):"
 msgstr ""
 
+#: Merge.rc:2188DD49
+#, c-format
+msgid "&Number of compare threads (a negative value implies addition of the number of available CPU cores):"
+msgstr ""
+
 #: Merge.rc:17BC2F9E
 #, c-format
 msgid "Binary"
@@ -2716,7 +2831,7 @@ msgstr ""
 msgid "View &Settings..."
 msgstr ""
 
-#: Merge.rc:78B3B629
+#: Merge.rc:78B3B62A
 #, c-format
 msgid "&Binary Mode..."
 msgstr ""
@@ -2886,7 +3001,7 @@ msgstr "Не за В&сички"
 msgid "&Continue"
 msgstr "&Продължи"
 
-#: Merge.rc:43017E4F
+#: Merge.rc:43017E51
 #, c-format
 msgid "&Skip"
 msgstr "&Прескочи"
@@ -2905,6 +3020,11 @@ msgstr "Не показвай това съобщение отново."
 #, c-format
 msgid "Don't ask this &question again."
 msgstr "Не питай пак този въпрос."
+
+#: Merge.rc:78ACB5DB
+#, c-format
+msgid "To make this messagebox visible again, press the Reset button on the General page of the Options dialog."
+msgstr ""
 
 #: Merge.rc:39000D57
 #, c-format
@@ -3279,7 +3399,7 @@ msgstr ""
 msgid "Middle and right path is invalid!"
 msgstr ""
 
-#: Merge.rc:237A0532
+#: Merge.rc:237A0533
 #, c-format
 msgid "All paths are invalid!"
 msgstr ""
@@ -3497,7 +3617,7 @@ msgstr "VSS работната папка и разположението на файла не съвпадат. Ще продължите
 msgid "No VSS database(s) found!"
 msgstr "Не е намерена VSS база данни!"
 
-#: Merge.rc:61E8009D
+#: Merge.rc:61E8009E
 #, c-format
 msgid "Error from VSS:"
 msgstr "Грешка от VSS:"
@@ -3862,7 +3982,7 @@ msgstr "Десен EOL"
 msgid "Left Encoding"
 msgstr "Лява кодировка"
 
-#: Merge.rc:1B17601F
+#: Merge.rc:1B176020
 #, c-format
 msgid "Right Encoding"
 msgstr "Дясна кодировка"
@@ -3907,7 +4027,7 @@ msgstr "От ляво само: %1"
 msgid "Middle only: %1"
 msgstr ""
 
-#: Merge.rc:1B176020
+#: Merge.rc:1B176021
 #, c-format
 msgid "Right only: %1"
 msgstr "От дясно само: %1"
@@ -3975,6 +4095,21 @@ msgstr "Грешка"
 #: Merge.rc:12D66B44
 #, c-format
 msgid "Text files are identical"
+msgstr ""
+
+#: Merge.rc:1DEEB161
+#, c-format
+msgid "(Middle and right are identical)"
+msgstr ""
+
+#: Merge.rc:1D99B043
+#, c-format
+msgid "(Left and right are identical)"
+msgstr ""
+
+#: Merge.rc:159C584C
+#, c-format
+msgid "(Left and middle are identical)"
 msgstr ""
 
 #: Merge.rc:12D66B45
@@ -4255,6 +4390,26 @@ msgstr "Не може да се отвори двоичен файл с редактор."
 #, c-format
 msgid "The folder exists only in other side and cannot be opened.\n\nDo you want to create a matching folder:\n%1\nto the other side and open these folders?"
 msgstr "Папката съществува само в другата страна и не може да се отвори.\n\nИскат ли да създадете съответстващи папки:\n%1\nв другата страна и да ги отворите?"
+
+#: Merge.rc:36F211E1
+#, c-format
+msgid "Do you want to move to the next file?"
+msgstr ""
+
+#: Merge.rc:6A0A36F1
+#, c-format
+msgid "Do you want to move to the previous file?"
+msgstr ""
+
+#: Merge.rc:36F211E2
+#, c-format
+msgid "Do you want to move to the next page?"
+msgstr ""
+
+#: Merge.rc:6A0A36F2
+#, c-format
+msgid "Do you want to move to the previous page?"
+msgstr ""
 
 #: Merge.rc:4A700AB0
 #, c-format
@@ -4695,6 +4850,11 @@ msgstr "Ресурси"
 msgid "Shell"
 msgstr ""
 
+#: Merge.rc:4E44AD6
+#, c-format
+msgid "VHDL"
+msgstr ""
+
 #: Merge.rc:8AF7E6B
 #, c-format
 msgid "Close &Left Tabs"
@@ -4723,5 +4883,20 @@ msgstr ""
 #: Merge.rc:4D3A8E6D
 #, c-format
 msgid "frhed(http://frhed.sourceforge.net/) not installed"
+msgstr ""
+
+#: Merge.rc:73B321AA
+#, c-format
+msgid "%1 does not exist. Do you want to create it?"
+msgstr ""
+
+#: Merge.rc:3A5D5964
+#, c-format
+msgid "Failed to create folder."
+msgstr ""
+
+#: Merge.rc:64F70DD6
+#, c-format
+msgid "You can specify the following parameters to the path:\n$file: Path name of the current file\n$linenum: Line number of the current cursor position"
 msgstr ""
 

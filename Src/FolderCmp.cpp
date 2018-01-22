@@ -79,7 +79,8 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 		struct change *script = NULL;
 		struct change *script10 = NULL;
 		struct change *script12 = NULL;
-		FolderCmp diffdata10, diffdata12;
+		struct change *script02 = NULL;
+		FolderCmp diffdata10, diffdata12, diffdata02;
 		String filepathUnpacked[3];
 		String filepathTransformed[3];
 		int codepage = 0;
@@ -90,7 +91,7 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 
 		// Transformation happens here
 		// text used for automatic mode : plugin filter must match it
-		String filteredFilenames = string_join(files.begin(), files.end(), _T("|"));
+		String filteredFilenames = strutils::join(files.begin(), files.end(), _T("|"));
 
 		PackingInfo * infoUnpacker=0;
 		PrediffingInfo * infoPrediffer=0;
@@ -110,9 +111,9 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 
 			//DiffFileData diffdata; //(filepathTransformed1, filepathTransformed2);
 			// Invoke unpacking plugins
-			if (infoUnpacker && string_compare_nocase(filepathUnpacked[nIndex], _T("NUL")) != 0)
+			if (infoUnpacker && strutils::compare_nocase(filepathUnpacked[nIndex], _T("NUL")) != 0)
 			{
-				if (!FileTransform_Unpacking(infoUnpacker, filepathUnpacked[nIndex], filteredFilenames))
+				if (!FileTransform::Unpacking(infoUnpacker, filepathUnpacked[nIndex], filteredFilenames))
 					goto exitPrepAndCompare;
 
 				// we use the same plugins for both files, so they must be defined before second file
@@ -156,12 +157,15 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 		{
 			diffdata10.m_diffFileData.SetDisplayFilepaths(files[1], files[0]); // store true names for diff utils patch file
 			diffdata12.m_diffFileData.SetDisplayFilepaths(files[1], files[2]); // store true names for diff utils patch file
+			diffdata02.m_diffFileData.SetDisplayFilepaths(files[0], files[2]); // store true names for diff utils patch file
 
 			if (!diffdata10.m_diffFileData.OpenFiles(filepathTransformed[1], filepathTransformed[0]))
 				goto exitPrepAndCompare;
 
-
 			if (!diffdata12.m_diffFileData.OpenFiles(filepathTransformed[1], filepathTransformed[2]))
+				goto exitPrepAndCompare;
+
+			if (!diffdata02.m_diffFileData.OpenFiles(filepathTransformed[0], filepathTransformed[2]))
 				goto exitPrepAndCompare;
 		}
 
@@ -169,7 +173,8 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 		// This allows us to (faster) compare big binary files
 		if (nCompMethod == CMP_CONTENT && 
 			(di.diffFileInfo[0].size > pCtxt->m_nQuickCompareLimit ||
-			di.diffFileInfo[1].size > pCtxt->m_nQuickCompareLimit))
+			di.diffFileInfo[1].size > pCtxt->m_nQuickCompareLimit || 
+			(nDirs > 2 && di.diffFileInfo[2].size > pCtxt->m_nQuickCompareLimit)))
 		{
 			nCompMethod = CMP_QUICK_CONTENT;
 		}
@@ -223,12 +228,23 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 					m_pDiffUtilsEngine->SetFilterCommentsManager(pCtxt->m_pFilterCommentsManager);
 
 					bool bRet;
-					int bin_flag = 0, bin_flag10 = 0, bin_flag12 = 0;
+					int bin_flag10 = 0, bin_flag12 = 0, bin_flag02 = 0;
 
 					m_pDiffUtilsEngine->SetFileData(2, diffdata10.m_diffFileData.m_inf);
 					bRet = m_pDiffUtilsEngine->Diff2Files(&script10, 0, &bin_flag10, false, NULL);
+					m_pDiffUtilsEngine->GetTextStats(0, &m_diffFileData.m_textStats[1]);
+					m_pDiffUtilsEngine->GetTextStats(1, &m_diffFileData.m_textStats[0]);
+
 					m_pDiffUtilsEngine->SetFileData(2, diffdata12.m_diffFileData.m_inf);
 					bRet = m_pDiffUtilsEngine->Diff2Files(&script12, 0, &bin_flag12, false, NULL);
+					m_pDiffUtilsEngine->GetTextStats(0, &m_diffFileData.m_textStats[1]);
+					m_pDiffUtilsEngine->GetTextStats(1, &m_diffFileData.m_textStats[2]);
+
+					m_pDiffUtilsEngine->SetFileData(2, diffdata02.m_diffFileData.m_inf);
+					bRet = m_pDiffUtilsEngine->Diff2Files(&script02, 0, &bin_flag02, false, NULL);
+					m_pDiffUtilsEngine->GetTextStats(0, &m_diffFileData.m_textStats[0]);
+					m_pDiffUtilsEngine->GetTextStats(1, &m_diffFileData.m_textStats[2]);
+
 					code = DIFFCODE::FILE;
 
 					CDiffWrapper dw;
@@ -252,6 +268,28 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 					else
 						code |= DIFFCODE::TEXT;
 
+					if ((code & DIFFCODE::COMPAREFLAGS) == DIFFCODE::DIFF)
+					{
+						if ((code & DIFFCODE::TEXTFLAGS) == DIFFCODE::TEXT)
+						{
+							if (!script12)
+								code |= DIFFCODE::DIFF1STONLY;
+							else if (!script02)
+								code |= DIFFCODE::DIFF2NDONLY;
+							else if (!script10)
+								code |= DIFFCODE::DIFF3RDONLY;
+						}
+						else
+						{
+							if (bin_flag12 > 0)
+								code |= DIFFCODE::DIFF1STONLY;
+							else if (bin_flag02 > 0)
+								code |= DIFFCODE::DIFF2NDONLY;
+							else if (bin_flag10 > 0)
+								code |= DIFFCODE::DIFF3RDONLY;
+						}
+					}
+
 					// If unique item, it was being compared to itself to determine encoding
 					// and the #diffs is invalid
 					if (di.diffcode.isSideFirstOnly() || di.diffcode.isSideSecondOnly() || di.diffcode.isSideThirdOnly())
@@ -260,7 +298,9 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 						m_ntrivialdiffs = CDiffContext::DIFFS_UNKNOWN;
 					}
 
-					dw.FreeDiffUtilsScript3(script10, script12);
+					dw.FreeDiffUtilsScript(script10);
+					dw.FreeDiffUtilsScript(script12);
+					dw.FreeDiffUtilsScript(script02);
 				}
 				else
 					code = DIFFCODE::FILE | DIFFCODE::CMPERR;
@@ -296,8 +336,6 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 				// Set to special value to indicate invalid
 				m_ndiffs = CDiffContext::DIFFS_UNKNOWN_QUICKCOMPARE;
 				m_ntrivialdiffs = CDiffContext::DIFFS_UNKNOWN_QUICKCOMPARE;
-				di.diffFileInfo[0].m_textStats = m_diffFileData.m_textStats[0];
-				di.diffFileInfo[1].m_textStats = m_diffFileData.m_textStats[1];	
 			}
 			else
 			{
@@ -314,33 +352,58 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 
 					// 10
 					m_pByteCompare->SetFileData(2, diffdata10.m_diffFileData.m_inf);
-	
+
 					// use our own byte-by-byte compare
 					int code10 = m_pByteCompare->CompareFiles(diffdata10.m_diffFileData.m_FileLocation);
-	
-					m_pByteCompare->GetTextStats(0, &diffdata10.m_diffFileData.m_textStats[0]);
-					m_pByteCompare->GetTextStats(1, &diffdata10.m_diffFileData.m_textStats[1]);
+
+					m_pByteCompare->GetTextStats(0, &m_diffFileData.m_textStats[1]);
+					m_pByteCompare->GetTextStats(1, &m_diffFileData.m_textStats[0]);
 
 					// 12
 					m_pByteCompare->SetFileData(2, diffdata12.m_diffFileData.m_inf);
-	
+
 					// use our own byte-by-byte compare
 					int code12 = m_pByteCompare->CompareFiles(diffdata12.m_diffFileData.m_FileLocation);
-	
-					m_pByteCompare->GetTextStats(0, &diffdata12.m_diffFileData.m_textStats[0]);
-					m_pByteCompare->GetTextStats(1, &diffdata12.m_diffFileData.m_textStats[1]);
+
+					m_pByteCompare->GetTextStats(0, &m_diffFileData.m_textStats[1]);
+					m_pByteCompare->GetTextStats(1, &m_diffFileData.m_textStats[2]);
+
+					// 02
+					m_pByteCompare->SetFileData(2, diffdata02.m_diffFileData.m_inf);
+
+					// use our own byte-by-byte compare
+					int code02 = m_pByteCompare->CompareFiles(diffdata02.m_diffFileData.m_FileLocation);
+
+					m_pByteCompare->GetTextStats(0, &m_diffFileData.m_textStats[0]);
+					m_pByteCompare->GetTextStats(1, &m_diffFileData.m_textStats[2]);
 
 					code = DIFFCODE::FILE;
-					if (DIFFCODE::isResultError(code10) || DIFFCODE::isResultError(code12))
+					if (DIFFCODE::isResultError(code10) || DIFFCODE::isResultError(code12) || DIFFCODE::isResultError(code02))
 						code |= DIFFCODE::CMPERR;
-					if (code10 & DIFFCODE::DIFF || code12 & DIFFCODE::DIFF)
+					if ((code10 & DIFFCODE::COMPAREFLAGS) == DIFFCODE::DIFF || (code12 & DIFFCODE::COMPAREFLAGS) == DIFFCODE::DIFF)
 						code |= DIFFCODE::DIFF;
 					else
 						code |= DIFFCODE::SAME;
-					if (code10 & DIFFCODE::BIN || code12 & DIFFCODE::BIN)
-						code |= DIFFCODE::BIN;
-					else
+					if ((code10 & DIFFCODE::TEXTFLAGS) == DIFFCODE::TEXT && 
+					    (code12 & DIFFCODE::TEXTFLAGS) == DIFFCODE::TEXT)
 						code |= DIFFCODE::TEXT;
+					else
+						code |= DIFFCODE::BIN;
+					if ((code10 & DIFFCODE::TEXTFLAGS) == (DIFFCODE::BIN | DIFFCODE::BINSIDE1))
+						code |= DIFFCODE::BINSIDE2;
+					if ((code10 & DIFFCODE::TEXTFLAGS) == (DIFFCODE::BIN | DIFFCODE::BINSIDE2))
+						code |= DIFFCODE::BINSIDE1;
+					if ((code12 & DIFFCODE::TEXTFLAGS) == (DIFFCODE::BIN | DIFFCODE::BINSIDE2))
+						code |= DIFFCODE::BINSIDE3;
+					if ((code & DIFFCODE::COMPAREFLAGS) == DIFFCODE::DIFF)
+					{
+						if ((code12 & DIFFCODE::COMPAREFLAGS) == DIFFCODE::SAME)
+							code |= DIFFCODE::DIFF1STONLY;
+						else if ((code02 & DIFFCODE::COMPAREFLAGS) == DIFFCODE::SAME)
+							code |= DIFFCODE::DIFF2NDONLY;
+						else if ((code10 & DIFFCODE::COMPAREFLAGS) == DIFFCODE::SAME)
+							code |= DIFFCODE::DIFF3RDONLY;
+					}
 				}
 				else
 					code = DIFFCODE::FILE | DIFFCODE::TEXT | DIFFCODE::CMPERR;
@@ -349,30 +412,27 @@ int FolderCmp::prepAndCompareFiles(CDiffContext * pCtxt, DIFFITEM &di)
 				// Set to special value to indicate invalid
 				m_ndiffs = CDiffContext::DIFFS_UNKNOWN_QUICKCOMPARE;
 				m_ntrivialdiffs = CDiffContext::DIFFS_UNKNOWN_QUICKCOMPARE;
-				// FIXME:
-				di.diffFileInfo[0].m_textStats = diffdata10.m_diffFileData.m_textStats[1];
-				di.diffFileInfo[1].m_textStats = diffdata10.m_diffFileData.m_textStats[0];	
-				di.diffFileInfo[2].m_textStats = diffdata12.m_diffFileData.m_textStats[1];	
 			}
 		}
 exitPrepAndCompare:
 		m_diffFileData.Reset();
 		diffdata10.m_diffFileData.Reset();
 		diffdata12.m_diffFileData.Reset();
+		diffdata02.m_diffFileData.Reset();
 		
 		// delete the temp files after comparison
 		if (filepathTransformed[0] != filepathUnpacked[0])
-			try { TFile(filepathTransformed[0]).remove(); } catch (...) { LogErrorString(string_format(_T("DeleteFile(%s) failed"), filepathTransformed[0].c_str())); }
+			try { TFile(filepathTransformed[0]).remove(); } catch (...) { LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), filepathTransformed[0].c_str())); }
 		if (filepathTransformed[1] != filepathUnpacked[1])
-			try { TFile(filepathTransformed[1]).remove(); } catch (...) { LogErrorString(string_format(_T("DeleteFile(%s) failed"), filepathTransformed[1].c_str())); }
+			try { TFile(filepathTransformed[1]).remove(); } catch (...) { LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), filepathTransformed[1].c_str())); }
 		if (nDirs > 2 && filepathTransformed[2] != filepathUnpacked[2])
-			try { TFile(filepathTransformed[2]).remove(); } catch (...) { LogErrorString(string_format(_T("DeleteFile(%s) failed"), filepathTransformed[2].c_str())); }
+			try { TFile(filepathTransformed[2]).remove(); } catch (...) { LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), filepathTransformed[2].c_str())); }
 		if (filepathUnpacked[0] != files[0])
-			try { TFile(filepathUnpacked[0]).remove(); } catch (...) { LogErrorString(string_format(_T("DeleteFile(%s) failed"), filepathUnpacked[0].c_str())); }
+			try { TFile(filepathUnpacked[0]).remove(); } catch (...) { LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), filepathUnpacked[0].c_str())); }
 		if (filepathUnpacked[1] != files[1])
-			try { TFile(filepathUnpacked[1]).remove(); } catch (...) { LogErrorString(string_format(_T("DeleteFile(%s) failed"), filepathUnpacked[1].c_str())); }
+			try { TFile(filepathUnpacked[1]).remove(); } catch (...) { LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), filepathUnpacked[1].c_str())); }
 		if (nDirs > 2 && filepathUnpacked[2] != files[2])
-			try { TFile(filepathUnpacked[2]).remove(); } catch (...) { LogErrorString(string_format(_T("DeleteFile(%s) failed"), filepathUnpacked[2].c_str())); }
+			try { TFile(filepathUnpacked[2]).remove(); } catch (...) { LogErrorString(strutils::format(_T("DeleteFile(%s) failed"), filepathUnpacked[2].c_str())); }
 
 		if (!pCtxt->m_bIgnoreCodepage && 
 		    (code & DIFFCODE::COMPAREFLAGS) == DIFFCODE::SAME &&

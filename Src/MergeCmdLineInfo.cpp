@@ -81,7 +81,7 @@ const TCHAR *MergeCmdLineInfo::EatParam(const TCHAR *p, String &param, bool *fla
 	param.assign(p ? p : _T(""), q - p);
 	if (q > p && flag)
 	{
-		param = string_makelower(param);
+		param = strutils::makelower(param);
 	}
 	// Strip any leading or trailing whitespace or quotes
 	param.erase(0, param.find_first_not_of(_T(" \t\r\n\"")));
@@ -102,9 +102,25 @@ const TCHAR *MergeCmdLineInfo::SetOption(const TCHAR *q, const String& key, cons
 	if (*q == _T(':'))
 	{
 		q = EatParam(q, s);
-//		value = s.c_str() + 1;
+		value = s.c_str() + 1;
 	}
-//	GetOptionsMgr()->SaveOption(key, value);
+	m_Options.insert_or_assign(key, value);
+	return q;
+}
+
+const TCHAR *MergeCmdLineInfo::SetConfig(const TCHAR *q)
+{
+	String s;
+	if (*q == ':')
+		++q;
+	q = EatParam(q, s);
+	size_t pos = s.find_first_of('=');
+	if (pos != String::npos)
+	{
+		String key = s.substr(0, pos);
+		String value = s.c_str() + pos + 1;
+		m_Options.insert_or_assign(key, value);
+	}
 	return q;
 }
 
@@ -121,6 +137,7 @@ MergeCmdLineInfo::MergeCmdLineInfo(const TCHAR *q):
 	m_bNonInteractive(false),
 	m_bSingleInstance(false),
 	m_bShowUsage(false),
+	m_bNoPrefs(false),
 	m_nCodepage(0),
 	m_dwLeftFlags(FFILEOPEN_NONE),
 	m_dwMiddleFlags(FFILEOPEN_NONE),
@@ -227,12 +244,14 @@ void MergeCmdLineInfo::AddPath(const String &path)
 		m_dwLeftFlags |= FFILEOPEN_CMDLINE;
 	else if (ord == 1)
 		m_dwRightFlags |= FFILEOPEN_CMDLINE;
+	else if (ord == 2)
+		m_dwMiddleFlags |= FFILEOPEN_CMDLINE;
 
 	if (!paths::IsURLorCLSID(path))
 	{
 		// Convert paths given in Linux-style ('/' as separator) given from
 		// Cygwin to Windows style ('\' as separator)
-		string_replace(param, _T("/"), _T("\\"));
+		strutils::replace(param, _T("/"), _T("\\"));
 
 		// If shortcut, expand it first
 		if (paths::IsShortcut(param))
@@ -320,10 +339,7 @@ void MergeCmdLineInfo::ParseWinMergeCmdLine(const TCHAR *q)
 		else if (param == _T("noprefs"))
 		{
 			// -noprefs means do not load or remember options (preferences)
-			// Turn off serializing to registry.
-//			GetOptionsMgr()->SetSerializing(false);
-			// Load all default settings.
-//			theApp.ResetOptions();
+			m_bNoPrefs = true;
 		}
 		else if (param == _T("minimize"))
 		{
@@ -443,6 +459,10 @@ void MergeCmdLineInfo::ParseWinMergeCmdLine(const TCHAR *q)
 		else if (param == _T("ignorecodepage"))
 		{
 			q = SetOption(q, OPT_CMP_IGNORE_CODEPAGE);
+		}
+		else if (param == _T("cfg") || param == _T("config"))
+		{
+			q = SetConfig(q);
 		}
 	}
 	// If "compare file dir" make it "compare file dir\file".

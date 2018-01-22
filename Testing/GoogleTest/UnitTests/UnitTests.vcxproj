@@ -21,27 +21,28 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{733E7C0B-AC3D-47AC-A8DA-E13644D6294D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
+    <ProjectName>UnitTests</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -87,7 +88,6 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\Src;..\..\..\Src\Common;..\..\..\Externals\boost;..\..\..\Externals\poco\Foundation\include;..\..\..\Externals\poco\XML\include;..\..\..\Externals\gtest\include;..\..\..\Externals\gtest\;..\..\..\Src\diffutils\src;..\..\..\Src\diffutils\lib;..\..\..\Src\diffutils\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;UNICODE;POCO_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -95,6 +95,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;Iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -104,13 +105,14 @@
       <ProgramDatabaseFile>$(OutDir)UnitTests.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\Src;..\..\..\Src\Common;..\..\..\Externals\boost;..\..\..\Externals\poco\Foundation\include;..\..\..\Externals\poco\XML\include;..\..\..\Externals\gtest\include;..\..\..\Externals\gtest\;..\..\..\Src\diffutils\src;..\..\..\Src\diffutils\lib;..\..\..\Src\diffutils\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;UNICODE;POCO_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;UNICODE;POCO_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -118,6 +120,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;Iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -138,6 +141,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;Iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -148,18 +152,20 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\..\Src;..\..\..\Src\Common;..\..\..\Externals\boost;..\..\..\Externals\poco\Foundation\include;..\..\..\Externals\poco\XML\include;..\..\..\Externals\gtest\include;..\..\..\Externals\gtest\;..\..\..\Src\diffutils\src;..\..\..\Src\diffutils\lib;..\..\..\Src\diffutils\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;UNICODE;POCO_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;UNICODE;POCO_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;Iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -178,7 +184,6 @@
     <ClCompile Include="..\..\..\Src\CompareEngines\ByteComparator.cpp" />
     <ClCompile Include="..\..\..\Src\CompareEngines\ByteCompare.cpp" />
     <ClCompile Include="..\..\..\Src\charsets.c" />
-    <ClCompile Include="..\..\..\Src\codepage.cpp" />
     <ClCompile Include="..\..\..\Src\codepage_detect.cpp" />
     <ClCompile Include="..\..\..\Src\CompareEngines\TimeSizeCompare.cpp" />
     <ClCompile Include="..\..\..\Src\CompareOptions.cpp" />
@@ -186,8 +191,8 @@
     <ClCompile Include="..\..\..\Src\DiffFileInfo.cpp" />
     <ClCompile Include="..\..\..\Src\DiffItem.cpp" />
     <ClCompile Include="..\..\..\Src\diffutils\src\Diff.cpp" />
+    <ClCompile Include="..\..\..\Src\diffutils\src\mystat.cpp" />
     <ClCompile Include="..\..\..\Src\DirItem.cpp" />
-    <ClCompile Include="..\..\..\Src\Common\dllproxy.c" />
     <ClCompile Include="..\..\..\Src\Environment.cpp" />
     <ClCompile Include="..\..\..\Src\Common\ExConverter.cpp" />
     <ClCompile Include="..\..\..\Src\FileFilter.cpp" />
@@ -207,6 +212,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\BinaryCompare\BinaryCompare_test.cpp" />
+    <ClCompile Include="..\diffutils\mystat_test.cpp" />
     <ClCompile Include="..\ShellFileOperations\ShellFileOperations_test.cpp" />
     <ClCompile Include="..\TimeSizeCompare\TimeSizeCompare_test.cpp" />
     <ClCompile Include="misc.cpp" />
@@ -228,7 +234,6 @@
     <ClCompile Include="..\ByteCompare\ByteCompare_test.cpp" />
     <ClCompile Include="..\Encoding\charsets_test.cpp" />
     <ClCompile Include="..\Encoding\codepage_detect_test.cpp" />
-    <ClCompile Include="..\Encoding\codepage_test.cpp" />
     <ClCompile Include="..\DirItem\DirItem_test.cpp" />
     <ClCompile Include="..\Environment\Environemt_test.cpp" />
     <ClCompile Include="..\FileFilter\FileFilterHelper_test.cpp" />
@@ -260,7 +265,6 @@
     <ClInclude Include="..\..\..\Src\CompareEngines\ByteComparator.h" />
     <ClInclude Include="..\..\..\Src\CompareEngines\ByteCompare.h" />
     <ClInclude Include="..\..\..\Src\charsets.h" />
-    <ClInclude Include="..\..\..\Src\codepage.h" />
     <ClInclude Include="..\..\..\Src\codepage_detect.h" />
     <ClInclude Include="..\..\..\Src\CompareEngines\TimeSizeCompare.h" />
     <ClInclude Include="..\..\..\Src\CompareOptions.h" />
@@ -268,7 +272,6 @@
     <ClInclude Include="..\..\..\Src\CompareEngines\DiffUtils.h" />
     <ClInclude Include="..\..\..\Src\DiffItem.h" />
     <ClInclude Include="..\..\..\Src\DirItem.h" />
-    <ClInclude Include="..\..\..\Src\Common\dllproxy.h" />
     <ClInclude Include="..\..\..\Src\Environment.h" />
     <ClInclude Include="..\..\..\Src\Common\ExConverter.h" />
     <ClInclude Include="..\..\..\Src\FileFilter.h" />

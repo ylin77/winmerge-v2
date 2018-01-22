@@ -13,7 +13,6 @@
 #include <memory>
 #include "unicoder.h"
 #include "ExConverter.h"
-#include "codepage.h"
 #include "charsets.h"
 #include "FileTextEncoding.h"
 #include "paths.h"
@@ -181,7 +180,7 @@ static unsigned demoGuessEncoding_rc(const char *src, size_t len, int defcodepag
 		size_t n = len < sizeof line - 1 ? len : sizeof line - 1;
 		memcpy(line, base, n);
 		line[n] = 0;
-	} while (len && sscanf(line, "#pragma code_page(%5u)", &cp) != 1);
+	} while (len && sscanf_s(line, "#pragma code_page(%5u)", &cp) != 1);
 	return cp;
 }
 
@@ -196,7 +195,7 @@ static unsigned GuessEncoding_from_bytes(const String& ext, const char *src, siz
 {
 	unsigned cp = ucr::getDefaultCodepage();
 	if (!ucr::CheckForInvalidUtf8(src, len))
-		cp = CP_UTF8;
+		cp = ucr::CP_UTF_8;
 	else if (guessEncodingType & 2)
 	{
 		IExconverter *pexconv = Exconverter::getInstance();
@@ -208,7 +207,7 @@ static unsigned GuessEncoding_from_bytes(const String& ext, const char *src, siz
 	}
 	if (guessEncodingType & 1)
 	{
-		String lower_ext = string_makelower(ext);
+		String lower_ext = strutils::makelower(ext);
 		if (lower_ext == _T(".rc"))
 		{
 			cp = demoGuessEncoding_rc(src, len, cp);
@@ -231,7 +230,7 @@ static unsigned GuessEncoding_from_bytes(const String& ext, const char *src, siz
  * @param [in] bGuessEncoding Try to guess codepage (not just unicode encoding).
  * @return Structure getting the encoding info.
  */
-FileTextEncoding GuessCodepageEncoding(const String& filepath, int guessEncodingType, int mapmaxlen)
+FileTextEncoding GuessCodepageEncoding(const String& filepath, int guessEncodingType, ptrdiff_t mapmaxlen)
 {
 	FileTextEncoding encoding;
 	CMarkdown::FileImage fi(filepath.c_str(), mapmaxlen);
@@ -241,17 +240,17 @@ FileTextEncoding GuessCodepageEncoding(const String& filepath, int guessEncoding
 	{
 	case 8 + 2 + 0:
 		encoding.SetUnicoding(ucr::UCS2LE);
-		encoding.SetCodepage(CP_UCS2LE);
+		encoding.SetCodepage(ucr::CP_UCS2LE);
 		encoding.m_bom = true;
 		break;
 	case 8 + 2 + 1:
 		encoding.SetUnicoding(ucr::UCS2BE);
-		encoding.SetCodepage(CP_UCS2BE);
+		encoding.SetCodepage(ucr::CP_UCS2BE);
 		encoding.m_bom = true;
 		break;
 	case 8 + 1:
 		encoding.SetUnicoding(ucr::UTF8);
-		encoding.SetCodepage(CP_UTF8);
+		encoding.SetCodepage(ucr::CP_UTF_8);
 		encoding.m_bom = true;
 		break;
 	default:

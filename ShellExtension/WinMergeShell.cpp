@@ -100,6 +100,58 @@ enum
 
 static String GetResourceString(UINT resourceID);
 
+// GreyMerlin (03 Sept 2017) - The following Version Info checking code is a 
+// short extract from the Microsoft <versionhelpers.h> file.  Unfortunatly, 
+// that file is not available for WinXP-compatible Platform Toolsets (e.g. 
+// v141_xp for VS2017).  Fortunatly, all the actual API interfaces do exist 
+// in WinXP (actually, in all Windows products since Win2000).  Use of this 
+// <versionhelpers.h> code avoids the unpleasant deprecation of the GetVersionEx()
+// API begining with Win 8.1.  This Version Info checking code is also fully 
+// compatible with all non-XP-compatible Toolsets as well (e.g. v141).
+
+#ifndef _WIN32_WINNT_VISTA
+#define _WIN32_WINNT_VISTA	0x0600
+#endif
+#ifndef _WIN32_WINNT_WIN8
+#define _WIN32_WINNT_WIN8	0x0602
+#endif
+
+#ifndef VERSIONHELPERAPI
+#define VERSIONHELPERAPI inline bool
+
+VERSIONHELPERAPI
+IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wServicePackMajor)
+{
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
+    DWORDLONG        const dwlConditionMask = VerSetConditionMask(
+        VerSetConditionMask(
+        VerSetConditionMask(
+            0, VER_MAJORVERSION, VER_GREATER_EQUAL),
+               VER_MINORVERSION, VER_GREATER_EQUAL),
+               VER_SERVICEPACKMAJOR, VER_GREATER_EQUAL);
+
+    osvi.dwMajorVersion = wMajorVersion;
+    osvi.dwMinorVersion = wMinorVersion;
+    osvi.wServicePackMajor = wServicePackMajor;
+
+    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR, dwlConditionMask) != FALSE;
+}
+
+
+VERSIONHELPERAPI
+IsWindowsVistaOrGreater()
+{
+    return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 0);
+}
+
+
+VERSIONHELPERAPI
+IsWindows8OrGreater()
+{
+    return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN8), LOBYTE(_WIN32_WINNT_WIN8), 0);
+}
+#endif // VERSIONHELPERAPI
+
 class CWinMergeTempLocale
 {
 private:
@@ -116,13 +168,15 @@ public:
 		int iLangId = reg.ReadDword(f_LanguageId, (DWORD)-1);
 		if (iLangId != -1)
 		{
-			SetThreadUILanguage(iLangId);
+			if (!IsWindowsVistaOrGreater())
+				SetThreadUILanguage(iLangId);
 			SetThreadLocale(MAKELCID(iLangId, SORT_DEFAULT));
 		}
 	}
 	~CWinMergeTempLocale()
 	{
-		SetThreadUILanguage(LANGIDFROMLCID(m_lcidOld));
+		if (!IsWindowsVistaOrGreater())
+			SetThreadUILanguage(LANGIDFROMLCID(m_lcidOld));
 		SetThreadLocale(m_lcidOld);
 	}
 };
@@ -141,46 +195,24 @@ static String GetResourceString(UINT resourceID)
 	return strResource;
 }
 
-static HBITMAP MakeBitmapBackColorTransparent(HBITMAP hbmSrc)
+HBITMAP ConvertHICONtoHBITMAP(HICON hIcon, int cx, int cy)
 {
-	HDC hdcSrc = CreateCompatibleDC(NULL);
-	BITMAP bm;
-	GetObject(hbmSrc, sizeof(bm), &bm);
-	HBITMAP hbmSrcOld = (HBITMAP)SelectObject(hdcSrc, hbmSrc);
-	BITMAPINFO bi = {0};
-	bi.bmiHeader.biSize = sizeof BITMAPINFOHEADER;
-	bi.bmiHeader.biPlanes = 1;
-	bi.bmiHeader.biBitCount = 32;
-	bi.bmiHeader.biCompression = BI_RGB;
-	bi.bmiHeader.biWidth = bm.bmWidth;
-	bi.bmiHeader.biHeight = -bm.bmHeight;
-	DWORD *pBits = NULL;
-	HBITMAP hbmNew = CreateDIBSection(NULL, &bi, DIB_RGB_COLORS, (void **)&pBits, NULL, 0);
-	if (pBits)
+	LPVOID lpBits;
+	BITMAPINFO bmi = { { sizeof(BITMAPINFOHEADER), cx, cy, 1, IsWindows8OrGreater() ? 32u : 24u } };
+	HBITMAP hbmp = CreateDIBSection(NULL, (BITMAPINFO*)&bmi, DIB_RGB_COLORS, &lpBits, NULL, 0);
+	HDC hdcMem = CreateCompatibleDC(NULL);
+	HBITMAP hbmpPrev = (HBITMAP)SelectObject(hdcMem, hbmp);
+	RECT rc = { 0, 0, cx, cy };
+	if (bmi.bmiHeader.biBitCount <= 24)
 	{
-		COLORREF clrTP = GetPixel(hdcSrc, 0, 0);
-		int bR = GetRValue(clrTP), bG = GetGValue(clrTP), bB = GetBValue(clrTP);
-	
-		for (int y = 0; y < bm.bmHeight; ++y)
-		{
-			for (int x = 0; x < bm.bmWidth; ++x)
-			{
-				COLORREF clrCur = GetPixel(hdcSrc, x, y);
-				int cR = GetRValue(clrCur), cG = GetGValue(clrCur), cB = GetBValue(clrCur);
-				if (!(abs(cR - bR) <= 1 && abs(cG - bG) <= 1 && abs(cB - bB) <= 1))
-				{
-					pBits[y * bm.bmWidth + x] = cB | (cG << 8) | (cR << 16) | 0xFF000000;
-				}
-			}
-		}
+		SetBkColor(hdcMem, GetSysColor(COLOR_MENU));
+		ExtTextOut(hdcMem, 0, 0, ETO_OPAQUE, &rc, NULL, 0, NULL);
 	}
-
-	SelectObject(hdcSrc, hbmSrcOld);
-	DeleteDC(hdcSrc);
-
-	return hbmNew;
+	DrawIconEx(hdcMem, 0, 0, hIcon, cx, cy, 0, NULL, DI_NORMAL);
+	SelectObject(hdcMem, hbmpPrev);
+	DeleteDC(hdcMem);
+	return hbmp;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CWinMergeShell
@@ -191,31 +223,19 @@ CWinMergeShell::CWinMergeShell()
 	m_dwMenuState = 0;
 	int cx = GetSystemMetrics(SM_CXMENUCHECK);
 	int cy = GetSystemMetrics(SM_CYMENUCHECK);
-	int id_fileicon = cx > 16 ? (cx > 32 ? IDB_WINMERGE48 : IDB_WINMERGE32) : IDB_WINMERGE;
-	int id_diricon = cx > 16 ? (cx > 32 ? IDB_WINMERGEDIR48 : IDB_WINMERGEDIR32) : IDB_WINMERGEDIR;
 
 	// compress or stretch icon bitmap according to menu item height
-	HBITMAP hMergeBmp = (HBITMAP)LoadImage(_Module.GetModuleInstance(), MAKEINTRESOURCE(id_fileicon), IMAGE_BITMAP,
-			cx, cy, LR_DEFAULTCOLOR);
-	HBITMAP hMergeDirBmp = (HBITMAP)LoadImage(_Module.GetModuleInstance(), MAKEINTRESOURCE(id_diricon), IMAGE_BITMAP,
-			cx, cy, LR_DEFAULTCOLOR);
+	HICON hMergeIcon = (HICON)LoadImage(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDI_WINMERGE), IMAGE_ICON,
+		cx, cy, LR_DEFAULTCOLOR);
+	HICON hMergeDirIcon = (HICON)LoadImage(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDI_WINMERGEDIR), IMAGE_ICON,
+		cx, cy, LR_DEFAULTCOLOR);
 
-	OSVERSIONINFO osvi;
-	osvi.dwOSVersionInfoSize = sizeof OSVERSIONINFO;
-	GetVersionEx(&osvi);
-	if (osvi.dwMajorVersion >= 6)
-	{
-		m_MergeBmp = MakeBitmapBackColorTransparent(hMergeBmp);
-		DeleteObject(hMergeBmp);
+	m_MergeBmp = ConvertHICONtoHBITMAP(hMergeIcon, cx, cy);
+	m_MergeDirBmp = ConvertHICONtoHBITMAP(hMergeDirIcon, cx, cy);
 
-		m_MergeDirBmp = MakeBitmapBackColorTransparent(hMergeDirBmp);
-		DeleteObject(hMergeDirBmp);
-	}
-	else
-	{
-		m_MergeBmp = hMergeBmp;
-		m_MergeDirBmp = hMergeDirBmp;
-	}
+	DestroyIcon(hMergeIcon);
+	DestroyIcon(hMergeDirIcon);
+
 }
 
 /// Default destructor, unloads bitmap
@@ -638,7 +658,7 @@ String CWinMergeShell::GetHelpText(UINT_PTR idCmd)
 
 		case MENU_ONESEL_PREV:
 			strHelp = GetResourceString(IDS_HELP_COMPARESAVED);
-			string_replace(strHelp, _T("%1"), m_strPreviousPath);
+			strutils::replace(strHelp, _T("%1"), m_strPreviousPath);
 			break;
 
 		case MENU_TWOSEL:

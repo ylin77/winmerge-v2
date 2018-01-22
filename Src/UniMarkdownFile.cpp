@@ -36,7 +36,7 @@ bool UniMarkdownFile::DoOpen(const String& filename, AccessMode mode)
 		// CMarkdown wants octets, so we may need to transcode to UTF8.
 		// As transcoding strips the BOM, we must check for it in advance.
 		if (IsUnicode())
-			m_codepage = CP_UTF8;
+			m_codepage = ucr::CP_UTF_8;
 		// The CMarkdown::File constructor cares about transcoding.
 		CMarkdown::File f(
 			reinterpret_cast<const TCHAR *>(m_base),
@@ -166,16 +166,15 @@ bool UniMarkdownFile::ReadString(String &line, String &eol, bool *lossy)
 			line = maketstring((const char *)current, m_current - current);
 			if (m_current < m_transparent)
 			{
-				current = m_current;
-				unsigned char eol = *m_current++;
-				if (m_current < m_transparent && *m_current == (eol ^ ('\r'^'\n')))
+				unsigned char eol1 = *m_current++;
+				if (m_current < m_transparent && *m_current == (eol1 ^ ('\r'^'\n')))
 				{
 					++m_current;
 					++m_txtstats.ncrlfs;
 				}
 				else
 				{
-					++(eol == '\r' ? m_txtstats.ncrs : m_txtstats.nlfs);
+					++(eol1 == '\r' ? m_txtstats.ncrs : m_txtstats.nlfs);
 				}
 			}
 			bDone = true;
@@ -184,17 +183,17 @@ bool UniMarkdownFile::ReadString(String &line, String &eol, bool *lossy)
 		{
 			while (m_current < m_base + m_filesize && isspace(*m_current))
 			{
-				unsigned char eol = *m_current++;
-				if (eol == '\r' || eol == '\n')
+				unsigned char eol1 = *m_current++;
+				if (eol1 == '\r' || eol1 == '\n')
 				{
-					if (m_current < m_base + m_filesize && *m_current == (eol ^ ('\r'^'\n')))
+					if (m_current < m_base + m_filesize && *m_current == (eol1 ^ ('\r'^'\n')))
 					{
 						++m_current;
 						++m_txtstats.ncrlfs;
 					}
 					else
 					{
-						++(eol == '\r' ? m_txtstats.ncrs : m_txtstats.nlfs);
+						++(eol1 == '\r' ? m_txtstats.ncrs : m_txtstats.nlfs);
 					}
 				}
 			}

@@ -87,9 +87,8 @@ public:
 	void RefreshOptions();
 	bool OpenDocs(int nFiles, const FileLocation fileloc[], const bool bRO[], const String strDesc[], int nPane);
 	void CheckFileChanged(void);
+	String GetDescription(int pane) const { return m_strDesc[pane]; };
 private:
-	static void CopySel(CHexMergeView *pViewSrc, CHexMergeView *pViewDst);
-	static void CopyAll(CHexMergeView *pViewSrc, CHexMergeView *pViewDst);
 	void DoFileSave(int nBuffer);
 	void DoFileSaveAs(int nBuffer);
 	HRESULT LoadOneFile(int index, LPCTSTR filename, BOOL readOnly, const String& strDesc);
@@ -130,7 +129,3 @@ protected:
 	DECLARE_MESSAGE_MAP()
 };
 
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Developer Studio will insert additional declarations immediately before the previous line.

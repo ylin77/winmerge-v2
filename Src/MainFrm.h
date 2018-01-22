@@ -113,7 +113,7 @@ public:
 	void SelectFilter();
 	void StartFlashing();
 	bool AskCloseConfirmation();
-	BOOL DoOpenConflict(const String& conflictFile, bool checked = false);
+	BOOL DoOpenConflict(const String& conflictFile, const String strDesc[] = nullptr, bool checked = false);
 	FRAMETYPE GetFrameType(const CFrameWnd * pFrame) const;
 	void UpdateDocTitle();
 	void ReloadMenu();
@@ -226,7 +226,6 @@ protected:
 	afx_msg void OnFileNew3();
 	afx_msg void OnToolsFilters();
 	afx_msg void OnViewStatusBar();
-	afx_msg void OnViewToolbar();
 	afx_msg void OnUpdateViewTabBar(CCmdUI* pCmdUI);
 	afx_msg void OnViewTabBar();
 	afx_msg void OnUpdateResizePanes(CCmdUI* pCmdUI);
@@ -245,13 +244,12 @@ protected:
 	afx_msg void OnToolbarSize(UINT id);
 	afx_msg void OnUpdateToolbarSize(CCmdUI* pCmdUI);
 	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnHelpCheckForUpdates();
-	afx_msg void OnUpdateHelpCheckForUpdates(CCmdUI* pCmdUI);
+	afx_msg void OnHelpReleasenotes();
+	afx_msg void OnHelpTranslations();
 	afx_msg void OnFileOpenConflict();
 	afx_msg void OnPluginsList();
 	afx_msg void OnUpdatePluginName(CCmdUI* pCmdUI);
 	afx_msg void OnDiffOptionsDropDown(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnUpdateDiffOptions(CCmdUI* pCmdUI);
 	afx_msg void OnDiffWhitespace(UINT nID);
 	afx_msg void OnUpdateDiffWhitespace(CCmdUI* pCmdUI);
 	afx_msg void OnDiffCaseSensitive();
@@ -277,15 +275,9 @@ private:
 	HexMergeDocList &GetAllHexMergeDocs();
 	void UpdateFont(FRAMETYPE frame);
 	BOOL CreateToolbar();
-	BOOL CreateComboBoxOnToolbar();
 	CMergeEditView * GetActiveMergeEditView();
 	void LoadToolbarImages();
 	HMENU NewMenu( int view, int ID );
 };
 
 CMainFrame * GetMainFrame(); // access to the singleton main frame object
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Developer Studio will insert additional declarations immediately before the previous line.

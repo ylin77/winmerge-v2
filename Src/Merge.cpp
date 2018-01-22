@@ -54,6 +54,7 @@
 #include "LineFiltersList.h"
 #include "FilterCommentsManager.h"
 #include "SyntaxColors.h"
+#include "CCrystalTextMarkers.h"
 #include "OptionsSyntaxColors.h"
 #include "Plugins.h"
 #include "ProjectFile.h"
@@ -67,6 +68,8 @@
 #include "TFile.h"
 #include "SourceControl.h"
 #include "paths.h"
+#include "CompareStats.h"
+#include "TestMain.h"
 
 // For shutdown cleanup
 #include "charsets.h"
@@ -206,6 +209,7 @@ CMergeApp::CMergeApp() :
 , m_pLineFilters(new LineFiltersList())
 , m_pFilterCommentsManager(new FilterCommentsManager())
 , m_pSyntaxColors(new SyntaxColors())
+, m_pMarkers(new CCrystalTextMarkers())
 , m_pSourceControl(new SourceControl())
 , m_bMergingMode(FALSE)
 {
@@ -215,7 +219,7 @@ CMergeApp::CMergeApp() :
 
 CMergeApp::~CMergeApp()
 {
-	sd_Close();
+	strdiff::Close();
 }
 /////////////////////////////////////////////////////////////////////////////
 // The one and only CMergeApp object
@@ -281,18 +285,18 @@ BOOL CMergeApp::InitInstance()
 	// Load registry keys from WinMerge.reg if existing WinMerge.reg
 	env::LoadRegistryFromFile(paths::ConcatPath(env::GetProgPath(), _T("WinMerge.reg")));
 
+	// Parse command-line arguments.
+	MergeCmdLineInfo cmdInfo(GetCommandLine());
+	if (cmdInfo.m_bNoPrefs)
+		m_pOptions->SetSerializing(false); // Turn off serializing to registry.
+
 	Options::Init(m_pOptions.get()); // Implementation in OptionsInit.cpp
+
+	for (const auto& it : cmdInfo.m_Options)
+		m_pOptions->Set(it.first, it.second);
 
 	// Initialize temp folder
 	SetupTempPath();
-
-	// Cleanup left over tempfiles from previous instances.
-	// Normally this should not neet to do anything - but if for some reason
-	// WinMerge did not delete temp files this makes sure they are removed.
-	CleanupWMtemp();
-
-	// Parse command-line arguments.
-	MergeCmdLineInfo cmdInfo(GetCommandLine());
 
 	// If paths were given to commandline we consider this being an invoke from
 	// commandline (from other application, shellextension etc).
@@ -358,8 +362,8 @@ BOOL CMergeApp::InitInstance()
 	if (m_pSourceControl)
 		m_pSourceControl->InitializeSourceControlMembers();
 
-	g_bUnpackerMode = theApp.GetProfileInt(_T("Settings"), _T("UnpackerMode"), PLUGIN_MANUAL);
-	g_bPredifferMode = theApp.GetProfileInt(_T("Settings"), _T("PredifferMode"), PLUGIN_MANUAL);
+	FileTransform::g_bUnpackerMode = theApp.GetProfileInt(_T("Settings"), _T("UnpackerMode"), PLUGIN_MANUAL);
+	FileTransform::g_bPredifferMode = theApp.GetProfileInt(_T("Settings"), _T("PredifferMode"), PLUGIN_MANUAL);
 
 	NONCLIENTMETRICS ncm = { sizeof NONCLIENTMETRICS };
 	if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof NONCLIENTMETRICS, &ncm, 0))
@@ -374,6 +378,9 @@ BOOL CMergeApp::InitInstance()
 
 	if (m_pSyntaxColors)
 		Options::SyntaxColors::Load(GetOptionsMgr(), m_pSyntaxColors.get());
+
+	if (m_pMarkers)
+		m_pMarkers->LoadFromRegistry();
 
 	if (m_pLineFilters)
 		m_pLineFilters->Initialize(GetOptionsMgr());
@@ -410,8 +417,8 @@ BOOL CMergeApp::InitInstance()
 		}
 	}
 
-	sd_Init(); // String diff init
-	sd_SetBreakChars(GetOptionsMgr()->GetString(OPT_BREAK_SEPARATORS).c_str());
+	strdiff::Init(); // String diff init
+	strdiff::SetBreakChars(GetOptionsMgr()->GetString(OPT_BREAK_SEPARATORS).c_str());
 
 	m_bMergingMode = GetOptionsMgr()->GetBool(OPT_MERGE_MODE);
 
@@ -490,16 +497,15 @@ BOOL CMergeApp::InitInstance()
 	if (hMutex)
 		ReleaseMutex(hMutex);
 
-	if (m_bNonInteractive)
-	{
-		bContinue = FALSE;
-	}
-
 	// If user wants to cancel the compare, close WinMerge
 	if (bContinue == FALSE)
 	{
 		pMainFrame->PostMessage(WM_CLOSE, 0, 0);
 	}
+
+#ifdef TEST_WINMERGE
+	WinMergeTest::TestAll();
+#endif
 
 	return bContinue;
 }
@@ -537,6 +543,12 @@ int CMergeApp::ExitInstance()
 	// Remove tempfolder
 	const String temp = env::GetTemporaryPath();
 	ClearTempfolder(temp);
+
+	// Cleanup left over tempfiles from previous instances.
+	// Normally this should not neet to do anything - but if for some reason
+	// WinMerge did not delete temp files this makes sure they are removed.
+	CleanupWMtemp();
+
 	delete m_mainThreadScripts;
 	CWinApp::ExitInstance();
 	return 0;
@@ -585,6 +597,22 @@ void CMergeApp::SetNeedIdleTimer()
 	m_bNeedIdleTimer = TRUE; 
 }
 
+bool CMergeApp::IsReallyIdle() const
+{
+	bool idle = true;
+	POSITION pos = m_pDirTemplate->GetFirstDocPosition();
+	while (pos)
+	{
+		CDirDoc *pDirDoc = static_cast<CDirDoc *>(m_pDirTemplate->GetNextDoc(pos));
+		if (const CompareStats *pCompareStats = pDirDoc->GetCompareStats())
+		{
+			if (!pCompareStats->IsCompareDone() || pDirDoc->GetGeneratingReport())
+				idle = false;
+		}
+	}
+    return idle;
+}
+
 BOOL CMergeApp::OnIdle(LONG lCount) 
 {
 	if (CWinApp::OnIdle(lCount))
@@ -596,6 +624,10 @@ BOOL CMergeApp::OnIdle(LONG lCount)
 		m_bNeedIdleTimer = FALSE;
 		m_pMainWnd->SendMessageToDescendants(WM_TIMER, IDLE_TIMER, lCount, TRUE, FALSE);
 	}
+
+	if (m_bNonInteractive && IsReallyIdle())
+		m_pMainWnd->PostMessage(WM_CLOSE, 0, 0);
+
 	return FALSE;
 }
 
@@ -696,7 +728,11 @@ BOOL CMergeApp::ParseArgsAndDoOpen(MergeCmdLineInfo& cmdInfo, CMainFrame* pMainF
 			}
 			else if (IsConflictFile(sFilepath))
 			{
-				bCompared = pMainFrame->DoOpenConflict(sFilepath);
+				//For a conflict file, load the descriptions in their respective positions:  (they will be reordered as needed)
+				strDesc[0] = cmdInfo.m_sLeftDesc;
+				strDesc[1] = cmdInfo.m_sMiddleDesc;
+				strDesc[2] = cmdInfo.m_sRightDesc;
+				bCompared = pMainFrame->DoOpenConflict(sFilepath, strDesc);
 			}
 			else
 			{
@@ -774,13 +810,13 @@ void CMergeApp::OpenFileToExternalEditor(const String& file, int nLineNumber/* =
 {
 	String sCmd = GetOptionsMgr()->GetString(OPT_EXT_EDITOR_CMD);
 	String sFile(file);
-	string_replace(sCmd, _T("$linenum"), string_to_str(nLineNumber));
+	strutils::replace(sCmd, _T("$linenum"), strutils::to_str(nLineNumber));
 
 	size_t nIndex = sCmd.find(_T("$file"));
 	if (nIndex != String::npos)
 	{
 		sFile.insert(0, _T("\""));
-		string_replace(sCmd, _T("$file"), sFile);
+		strutils::replace(sCmd, _T("$file"), sFile);
 		nIndex = sCmd.find(' ', nIndex + sFile.length());
 		if (nIndex != String::npos)
 			sCmd.insert(nIndex, _T("\""));
@@ -805,7 +841,7 @@ void CMergeApp::OpenFileToExternalEditor(const String& file, int nLineNumber/* =
 	if (!retVal)
 	{
 		// Error invoking external editor
-		String msg = string_format_string1(_("Failed to execute external editor: %1"), sCmd);
+		String msg = strutils::format_string1(_("Failed to execute external editor: %1"), sCmd);
 		AfxMessageBox(msg.c_str(), MB_ICONSTOP);
 	}
 	else
@@ -834,10 +870,7 @@ void CMergeApp::ShowHelp(LPCTSTR helpLocation /*= NULL*/)
 {
 	String sPath = env::GetProgPath();
 	LANGID LangId = GetLangId();
-	if (PRIMARYLANGID(LangId) == LANG_JAPANESE)
-		sPath = paths::ConcatPath(sPath, DocsPath_ja);
-	else
-		sPath = paths::ConcatPath(sPath, DocsPath);
+	sPath = paths::ConcatPath(sPath, DocsPath);
 	if (helpLocation == NULL)
 	{
 		if (paths::DoesPathExist(sPath) == paths::IS_EXISTING_FILE)
@@ -922,12 +955,12 @@ BOOL CMergeApp::CreateBackup(BOOL bFolder, const String& pszPath)
 		// nice way to add a real time (invalid chars etc).
 		if (GetOptionsMgr()->GetBool(OPT_BACKUP_ADD_TIME))
 		{
-			struct tm *tm;
+			struct tm tm;
 			time_t curtime = 0;
 			time(&curtime);
-			tm = localtime(&curtime);
+			::localtime_s(&tm, &curtime);
 			CString timestr;
-			timestr.Format(_T("%04d%02d%02d%02d%02d%02d"), tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+			timestr.Format(_T("%04d%02d%02d%02d%02d%02d"), tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 			filename += _T("-");
 			filename += timestr;
 		}
@@ -947,7 +980,7 @@ BOOL CMergeApp::CreateBackup(BOOL bFolder, const String& pszPath)
 		
 		if (!success)
 		{
-			String msg = string_format_string1(
+			String msg = strutils::format_string1(
 				_("Unable to backup original file:\n%1\n\nContinue anyway?"),
 				pszPath);
 			if (AfxMessageBox(msg.c_str(), MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN) != IDYES)
@@ -1017,16 +1050,20 @@ int CMergeApp::HandleReadonlySave(String& strSavePath, BOOL bMultiFile,
 	CString title;
 	int nVerSys = 0;
 
-	try
+	if (!strSavePath.empty())
 	{
-		TFile file(strSavePath);
-		bFileExists = file.exists();
-		if (bFileExists)
-			bFileRO = !file.canWrite();
+		try
+		{
+			TFile file(strSavePath);
+			bFileExists = file.exists();
+			if (bFileExists)
+				bFileRO = !file.canWrite();
+		}
+		catch (...)
+		{
+		}
 	}
-	catch (...)
-	{
-	}
+
 	nVerSys = GetOptionsMgr()->GetInt(OPT_VCS_SYSTEM);
 	
 	if (bFileExists && bFileRO)
@@ -1053,7 +1090,7 @@ int CMergeApp::HandleReadonlySave(String& strSavePath, BOOL bMultiFile,
 			if (bMultiFile)
 			{
 				// Multiple files or folder
-				str = string_format_string1(_("%1\nis marked read-only. Would you like to override the read-only item?"), strSavePath);
+				str = strutils::format_string1(_("%1\nis marked read-only. Would you like to override the read-only item?"), strSavePath);
 				userChoice = AfxMessageBox(str.c_str(), MB_YESNOCANCEL |
 						MB_ICONWARNING | MB_DEFBUTTON3 | MB_DONT_ASK_AGAIN |
 						MB_YES_TO_ALL, IDS_SAVEREADONLY_MULTI);
@@ -1061,7 +1098,7 @@ int CMergeApp::HandleReadonlySave(String& strSavePath, BOOL bMultiFile,
 			else
 			{
 				// Single file
-				str = string_format_string1(_("%1 is marked read-only. Would you like to override the read-only file ? (No to save as new filename.)"), strSavePath);
+				str = strutils::format_string1(_("%1 is marked read-only. Would you like to override the read-only file ? (No to save as new filename.)"), strSavePath);
 				userChoice = AfxMessageBox(str.c_str(), MB_YESNOCANCEL |
 						MB_ICONWARNING | MB_DEFBUTTON2 | MB_DONT_ASK_AGAIN,
 						IDS_SAVEREADONLY_FMT);
@@ -1145,7 +1182,7 @@ bool CMergeApp::IsProjectFile(const String& filepath) const
 {
 	String ext;
 	paths::SplitFilename(filepath, NULL, NULL, &ext);
-	if (string_compare_nocase(ext, ProjectFile::PROJECTFILE_EXT) == 0)
+	if (strutils::compare_nocase(ext, ProjectFile::PROJECTFILE_EXT) == 0)
 		return true;
 	else
 		return false;
@@ -1164,7 +1201,7 @@ bool CMergeApp::LoadProjectFile(const String& sProject, ProjectFile &project)
 	{
 		String sErr = _("Unknown error attempting to open project file");
 		sErr += ucr::toTString(e.displayText());
-		String msg = string_format_string2(_("Cannot open file\n%1\n\n%2"), sProject, sErr);
+		String msg = strutils::format_string2(_("Cannot open file\n%1\n\n%2"), sProject, sErr);
 		AfxMessageBox(msg.c_str(), MB_ICONSTOP);
 		return false;
 	}
@@ -1182,7 +1219,7 @@ bool CMergeApp::SaveProjectFile(const String& sProject, const ProjectFile &proje
 	{
 		String sErr = _("Unknown error attempting to save project file");
 		sErr += ucr::toTString(e.displayText());
-		String msg = string_format_string2(_("Cannot open file\n%1\n\n%2"), sProject, sErr);
+		String msg = strutils::format_string2(_("Cannot open file\n%1\n\n%2"), sProject, sErr);
 		AfxMessageBox(msg.c_str(), MB_ICONSTOP);
 		return false;
 	}
@@ -1213,7 +1250,7 @@ bool CMergeApp::LoadAndOpenProjectFile(const String& sProject, const String& sRe
 	if (project.HasFilter())
 	{
 		String filter = project.GetFilter();
-		filter = string_trim_ws(filter);
+		filter = strutils::trim_ws(filter);
 		m_pGlobalFileFilter->SetFilter(filter);
 	}
 	if (project.HasSubfolders())

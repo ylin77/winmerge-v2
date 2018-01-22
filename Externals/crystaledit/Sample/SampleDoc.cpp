@@ -44,10 +44,14 @@ CSampleDoc::CSampleDoc() : m_xTextBuffer(this)
    _tcscpy(m_lf.lfFaceName, _T("Courier New"));
 
 	m_pSyntaxColors = new SyntaxColors();
+	m_pMarkers = new CCrystalTextMarkers();
+	m_pMarkers->LoadFromRegistry();
 }
 
 CSampleDoc::~CSampleDoc()
 {
+	delete m_pSyntaxColors;
+	delete m_pMarkers;
 }
 
 BOOL CSampleDoc::OnNewDocument()

@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include "codepage.h"
 #include "unicoder.h"
 
 namespace
@@ -50,6 +49,36 @@ namespace
 #endif
 	}
 
+	TEST_F(UnicoderTest, CheckForInvalidUtf8)
+	{
+		std::string utf8 = ucr::toUTF8(L"\u00a0");
+		EXPECT_EQ(false, ucr::CheckForInvalidUtf8(utf8.c_str(), utf8.length()));
+		utf8 = ucr::toUTF8(L"\u263a");
+		EXPECT_EQ(false, ucr::CheckForInvalidUtf8(utf8.c_str(), utf8.length()));
+		utf8 = ucr::toUTF8(L"\u263a|\u00a0");
+		EXPECT_EQ(false, ucr::CheckForInvalidUtf8(utf8.c_str(), utf8.length()));
+
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8("", 0));
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8(" ", 1));
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8("ab", 2));
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8("abc", 3));
+
+		utf8 = ucr::toUTF8(L"\u00a0");
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8(utf8.c_str(), utf8.length() - 1));
+		utf8 = ucr::toUTF8(L"\u263a");
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8(utf8.c_str(), utf8.length() - 1));
+
+		utf8 = ucr::toUTF8(L"\u00a0");
+		utf8[utf8.length() - 1] &= 0x7f;
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8(utf8.c_str(), utf8.length()));
+		utf8 = ucr::toUTF8(L"\u263a");
+		utf8[utf8.length() - 2] &= 0x7f;
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8(utf8.c_str(), utf8.length()));
+		utf8 = ucr::toUTF8(L"\u263a");
+		utf8[utf8.length() - 1] &= 0x7f;
+		EXPECT_EQ(true, ucr::CheckForInvalidUtf8(utf8.c_str(), utf8.length()));
+	}
+
 	TEST_F(UnicoderTest, CrossConvert)
 	{
 		wchar_t wbuf[256];
@@ -61,28 +90,28 @@ namespace
 		int n;
 
 		// UTF8->UCS2LE
-		n = ucr::CrossConvert(str_utf8, strlen(str_utf8), (char *)wbuf, sizeof(wbuf), CP_UTF8, 1200, &lossy);
+		n = ucr::CrossConvert(str_utf8, static_cast<unsigned>(strlen(str_utf8)), (char *)wbuf, sizeof(wbuf), ucr::CP_UTF_8, 1200, &lossy);
 		EXPECT_STREQ(str_ucs2, wbuf);
 		EXPECT_EQ(wcslen(str_ucs2) * sizeof(wchar_t), n);
 
 		// UCS2BE->UCS2LE
-		_swab((char *)str_ucs2, (char *)str_ucs2be, (wcslen(str_ucs2) + 1) * sizeof(wchar_t));
-		n = ucr::CrossConvert((char *)str_ucs2be, wcslen(str_ucs2) * sizeof(wchar_t), (char *)wbuf, sizeof(wbuf), 1201, 1200, &lossy);
+		_swab((char *)str_ucs2, (char *)str_ucs2be, static_cast<int>((wcslen(str_ucs2) + 1) * sizeof(wchar_t)));
+		n = ucr::CrossConvert((char *)str_ucs2be, static_cast<unsigned>(wcslen(str_ucs2) * sizeof(wchar_t)), (char *)wbuf, sizeof(wbuf), 1201, 1200, &lossy);
 		EXPECT_STREQ(str_ucs2, wbuf);
 		EXPECT_EQ(wcslen(str_ucs2) * sizeof(wchar_t), n);
 
 		// UCS2LE->UCS2LE
-		n = ucr::CrossConvert((char *)str_ucs2, wcslen(str_ucs2) * sizeof(wchar_t), (char *)wbuf, sizeof(wbuf), 1200, 1200, &lossy);
+		n = ucr::CrossConvert((char *)str_ucs2, static_cast<unsigned>(wcslen(str_ucs2) * sizeof(wchar_t)), (char *)wbuf, sizeof(wbuf), 1200, 1200, &lossy);
 		EXPECT_STREQ(str_ucs2, wbuf);
 		EXPECT_EQ(wcslen(str_ucs2) * sizeof(wchar_t), n);
 
 		// UTF8->UCS2BE
-		n = ucr::CrossConvert(str_utf8, strlen(str_utf8), (char *)wbuf, sizeof(wbuf), CP_UTF8, 1201, &lossy);
+		n = ucr::CrossConvert(str_utf8, static_cast<unsigned>(strlen(str_utf8)), (char *)wbuf, sizeof(wbuf), ucr::CP_UTF_8, 1201, &lossy);
 		EXPECT_STREQ(str_ucs2be, wbuf);
 		EXPECT_EQ(wcslen(str_ucs2be) * sizeof(wchar_t), n);
 
 		// UCS2BE->UTF8
-		n = ucr::CrossConvert((char *)str_ucs2be, wcslen(str_ucs2be) * sizeof(wchar_t), buf, sizeof(buf), 1201, CP_UTF8, &lossy);
+		n = ucr::CrossConvert((char *)str_ucs2be, static_cast<unsigned>(wcslen(str_ucs2be) * sizeof(wchar_t)), buf, sizeof(buf), 1201, ucr::CP_UTF_8, &lossy);
 		EXPECT_STREQ(str_utf8, buf);
 		EXPECT_EQ(strlen(str_utf8), n);
 

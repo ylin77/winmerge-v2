@@ -31,7 +31,6 @@
 #include "Plugins.h"
 #include "paths.h"
 #include "unicoder.h"
-#include "codepage.h"
 #include "Environment.h"
 #include "MergeApp.h"
 #include "OptionsMgr.h"
@@ -62,7 +61,7 @@ String CConfigLog::GetFileName() const
 /** 
  * @brief Write plugin names
  */
-void CConfigLog::WritePluginsInLogFile(LPCWSTR transformationEvent)
+void CConfigLog::WritePluginsInLogFile(const wchar_t *transformationEvent)
 {
 	// get an array with the available scripts
 	PluginArray * piPluginArray; 
@@ -70,8 +69,7 @@ void CConfigLog::WritePluginsInLogFile(LPCWSTR transformationEvent)
 	piPluginArray = 
 		CAllThreadsScripts::GetActiveSet()->GetAvailableScripts(transformationEvent);
 
-	int iPlugin;
-	for (iPlugin = 0 ; iPlugin < piPluginArray->size() ; iPlugin++)
+	for (size_t iPlugin = 0 ; iPlugin < piPluginArray->size() ; iPlugin++)
 	{
 		const PluginInfoPtr& plugin = piPluginArray->at(iPlugin);
 		m_pfile->WriteString(_T("\r\n  "));
@@ -98,9 +96,9 @@ static String GetLocaleString(LCID locid, LCTYPE lctype)
 /**
  * @brief Write string item
  */
-void CConfigLog::WriteItem(int indent, const String& key, LPCTSTR value)
+void CConfigLog::WriteItem(int indent, const String& key, const TCHAR *value)
 {
-	String text = string_format(value ? _T("%*.0s%s: %s\r\n") : _T("%*.0s%s:\r\n"), indent, key.c_str(), key.c_str(), value);
+	String text = strutils::format(value ? _T("%*.0s%s: %s\r\n") : _T("%*.0s%s:\r\n"), indent, key.c_str(), key.c_str(), value);
 	m_pfile->WriteString(text);
 }
 
@@ -117,7 +115,7 @@ void CConfigLog::WriteItem(int indent, const String& key, const String &str)
  */
 void CConfigLog::WriteItem(int indent, const String& key, long value)
 {
-	String text = string_format(_T("%*.0s%s: %ld\r\n"), indent, key.c_str(), key.c_str(), value);
+	String text = strutils::format(_T("%*.0s%s: %ld\r\n"), indent, key.c_str(), key.c_str(), value);
 	m_pfile->WriteString(text);
 }
 
@@ -142,7 +140,7 @@ void CConfigLog::WriteVersionOf1(int indent, const String& path)
 {
 	String name = paths::FindFileName(path);
 	CVersionInfo vi(path.c_str(), TRUE);
-	String text = string_format
+	String text = strutils::format
 	(
 		name == path
 	?	_T("%*s%-20s %s=%u.%02u %s=%04u\r\n")
@@ -295,7 +293,7 @@ bool CConfigLog::DoFile(String &sError)
 	WritePluginsInLogFile(L"BUFFER_PREDIFF");
 	FileWriteString(_T("\r\n Editor scripts: "));
 	WritePluginsInLogFile(L"EDITOR_SCRIPT");
-	if (IsWindowsScriptThere() == FALSE)
+	if (plugin::IsWindowsScriptThere() == FALSE)
 		FileWriteString(_T("\r\n .sct scripts disabled (Windows Script Host not found)\r\n"));
 
 	FileWriteString(_T("\r\n\r\n"));
@@ -328,8 +326,18 @@ String CConfigLog::GetBuildFlags() const
 {
 	String flags;
 
-#ifdef WIN64
+#if defined WIN64
 	flags += _T(" WIN64 ");
+#elif defined WIN32
+	flags += _T(" WIN32 ");
+#endif
+
+#if defined UNICODE
+	flags += _T(" UNICODE ");
+#endif
+
+#if defined _DEBUG
+	flags += _T(" _DEBUG ");
 #endif
 
 	return flags;

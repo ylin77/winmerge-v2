@@ -89,6 +89,10 @@ template<class T> struct AutoReleaser
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+
+namespace plugin
+{
+
 /**
  * @brief Check for the presence of Windows Script
  *
@@ -244,6 +248,8 @@ int GetMethodIDInScript(LPDISPATCH piDispatch, int methodIndex)
 	return fncID;
 }
 
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // find scripts/activeX for an event : each event is assigned to a subdirectory 
 
@@ -292,7 +298,7 @@ void PluginInfo::LoadFilterString()
 		if (sPiece.empty())
 			break;
 
-		sPiece = string_makeupper(string_trim_ws_begin(sPiece));
+		sPiece = strutils::makeupper(strutils::trim_ws_begin(sPiece));
 
 		int re_opts = 0;
 		std::string regexString = ucr::toUTF8(sPiece);
@@ -326,7 +332,7 @@ bool PluginInfo::TestAgainstRegList(const String& szTest) const
 		sLine = sLine.substr(0, pos);
 		if (sPiece.empty())
 			continue;
-		sPiece = string_makeupper(string_trim_ws_begin(sPiece));
+		sPiece = strutils::makeupper(strutils::trim_ws_begin(sPiece));
 
 		if (::TestAgainstRegList(&m_filters, sPiece))
 			return true;
@@ -393,7 +399,7 @@ int PluginInfo::LoadPlugin(const String & scriptletFilepath, const wchar_t *tran
 	VARIANT ret;
 	// invoke mandatory method get PluginEvent
 	VariantInit(&ret);
-	if (!SearchScriptForDefinedProperties(lpDispatch, L"PluginEvent"))
+	if (!plugin::SearchScriptForDefinedProperties(lpDispatch, L"PluginEvent"))
 	{
 		scinfo.Log(_T("PluginEvent method missing"));
 		return -20; // error
@@ -416,29 +422,29 @@ int PluginInfo::LoadPlugin(const String & scriptletFilepath, const wchar_t *tran
 	bool bFound = true;
 	if (wcscmp(transformationEvent, L"BUFFER_PREDIFF") == 0)
 	{
-		bFound &= SearchScriptForMethodName(lpDispatch, L"PrediffBufferW");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"PrediffBufferW");
 	}
 	else if (wcscmp(transformationEvent, L"FILE_PREDIFF") == 0)
 	{
-		bFound &= SearchScriptForMethodName(lpDispatch, L"PrediffFile");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"PrediffFile");
 	}
 	else if (wcscmp(transformationEvent, L"BUFFER_PACK_UNPACK") == 0)
 	{
-		bFound &= SearchScriptForMethodName(lpDispatch, L"UnpackBufferA");
-		bFound &= SearchScriptForMethodName(lpDispatch, L"PackBufferA");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"UnpackBufferA");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"PackBufferA");
 	}
 	else if (wcscmp(transformationEvent, L"FILE_PACK_UNPACK") == 0)
 	{
-		bFound &= SearchScriptForMethodName(lpDispatch, L"UnpackFile");
-		bFound &= SearchScriptForMethodName(lpDispatch, L"PackFile");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"UnpackFile");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"PackFile");
 	}
 	else if (wcscmp(transformationEvent, L"FILE_FOLDER_PACK_UNPACK") == 0)
 	{
-		bFound &= SearchScriptForMethodName(lpDispatch, L"IsFolder");
-		bFound &= SearchScriptForMethodName(lpDispatch, L"UnpackFile");
-		bFound &= SearchScriptForMethodName(lpDispatch, L"PackFile");
-		bFound &= SearchScriptForMethodName(lpDispatch, L"UnpackFolder");
-		bFound &= SearchScriptForMethodName(lpDispatch, L"PackFolder");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"IsFolder");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"UnpackFile");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"PackFile");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"UnpackFolder");
+		bFound &= plugin::SearchScriptForMethodName(lpDispatch, L"PackFolder");
 	}
 	if (!bFound)
 	{
@@ -451,7 +457,7 @@ int PluginInfo::LoadPlugin(const String & scriptletFilepath, const wchar_t *tran
 	// there may be several functions inside one script, count the number of functions
 	if (wcscmp(transformationEvent, L"EDITOR_SCRIPT") == 0)
 	{
-		m_nFreeFunctions = CountMethodsInScript(lpDispatch);
+		m_nFreeFunctions = plugin::CountMethodsInScript(lpDispatch);
 		if (m_nFreeFunctions == 0)
 			// error (Plugin doesn't offer any method, what is this ?)
 			return -50;
@@ -459,7 +465,7 @@ int PluginInfo::LoadPlugin(const String & scriptletFilepath, const wchar_t *tran
 
 
 	// get optional property PluginDescription
-	if (SearchScriptForDefinedProperties(lpDispatch, L"PluginDescription"))
+	if (plugin::SearchScriptForDefinedProperties(lpDispatch, L"PluginDescription"))
 	{
 		h = ::invokeW(lpDispatch, &ret, L"PluginDescription", opGet[0], NULL);
 		if (FAILED(h) || ret.vt != VT_BSTR)
@@ -478,7 +484,7 @@ int PluginInfo::LoadPlugin(const String & scriptletFilepath, const wchar_t *tran
 
 	// get PluginFileFilters
 	bool hasPluginFileFilters = false;
-	if (SearchScriptForDefinedProperties(lpDispatch, L"PluginFileFilters"))
+	if (plugin::SearchScriptForDefinedProperties(lpDispatch, L"PluginFileFilters"))
 	{
 		h = ::invokeW(lpDispatch, &ret, L"PluginFileFilters", opGet[0], NULL);
 		if (FAILED(h) || ret.vt != VT_BSTR)
@@ -497,7 +503,7 @@ int PluginInfo::LoadPlugin(const String & scriptletFilepath, const wchar_t *tran
 	VariantClear(&ret);
 
 	// get optional property PluginIsAutomatic
-	if (SearchScriptForDefinedProperties(lpDispatch, L"PluginIsAutomatic"))
+	if (plugin::SearchScriptForDefinedProperties(lpDispatch, L"PluginIsAutomatic"))
 	{
 		h = ::invokeW(lpDispatch, &ret, L"PluginIsAutomatic", opGet[0], NULL);
 		if (FAILED(h) || ret.vt != VT_BOOL)
@@ -538,7 +544,7 @@ int PluginInfo::LoadPlugin(const String & scriptletFilepath, const wchar_t *tran
 static void ReportPluginLoadFailure(const String & scriptletFilepath, const wchar_t *transformationEvent)
 {
 	String sEvent = ucr::toTString(transformationEvent);
-	AppErrorMessageBox(string_format(_T("Exception loading plugin for event: %s\r\n%s"), sEvent.c_str(), scriptletFilepath.c_str()));
+	AppErrorMessageBox(strutils::format(_T("Exception loading plugin for event: %s\r\n%s"), sEvent.c_str(), scriptletFilepath.c_str()));
 }
 
 /**
@@ -573,7 +579,7 @@ static vector<String>& LoadTheScriptletList()
 	{
 		String path = paths::ConcatPath(env::GetProgPath(), _T("MergePlugins"));
 
-		if (IsWindowsScriptThere())
+		if (plugin::IsWindowsScriptThere())
 			GetScriptletsAt(path, _T(".sct"), theScriptletList );		// VBS/JVS scriptlet
 		else
 			LogErrorString(_T("\n  .sct plugins disabled (Windows Script Host not found)"));
@@ -582,11 +588,10 @@ static vector<String>& LoadTheScriptletList()
 		scriptletsLoaded = true;
 
 		// lock the *.sct to avoid them being deleted/moved away
-		int i;
-		for (i = 0 ; i < theScriptletList.size() ; i++)
+		for (size_t i = 0 ; i < theScriptletList.size() ; i++)
 		{
 			String scriptlet = theScriptletList.at(i);
-			if (scriptlet.length() > 4 && string_compare_nocase(scriptlet.substr(scriptlet.length() - 4), _T(".sct")) != 0)
+			if (scriptlet.length() > 4 && strutils::compare_nocase(scriptlet.substr(scriptlet.length() - 4), _T(".sct")) != 0)
 			{
 				// don't need to lock this file
 				theScriptletHandleList.push_back(NULL);
@@ -619,8 +624,7 @@ static void UnloadTheScriptletList()
 	FastMutex::ScopedLock lock(scriptletsSem);
 	if (scriptletsLoaded)
 	{
-		int i;
-		for (i = 0 ; i < theScriptletHandleList.size() ; i++)
+		for (size_t i = 0 ; i < theScriptletHandleList.size() ; i++)
 		{
 			HANDLE hFile = theScriptletHandleList.at(i);
 			if (hFile != 0)
@@ -638,7 +642,7 @@ static void UnloadTheScriptletList()
  */
 static void RemoveScriptletCandidate(const String &scriptletFilepath)
 {
-	for (int i=0; i<theScriptletList.size(); ++i)
+	for (size_t i=0; i<theScriptletList.size(); ++i)
 	{
 		if (scriptletFilepath == theScriptletList[i])
 		{
@@ -675,9 +679,8 @@ static PluginArray * GetAvailableScripts( const wchar_t *transformationEvent)
 
 	PluginArray * pPlugins = new PluginArray;
 
-	int i;
 	std::list<String> badScriptlets;
-	for (i = 0 ; i < scriptlets.size() ; i++)
+	for (size_t i = 0 ; i < scriptlets.size() ; i++)
 	{
 		// Note all the info about the plugin
 		PluginInfoPtr plugin(new PluginInfo);
@@ -772,14 +775,14 @@ void CScriptsOfThread::SaveSettings()
 	{
 		if (m_aPluginsByEvent[i] == NULL)
 			m_aPluginsByEvent[i].reset(::GetAvailableScripts(TransformationCategories[i]));
-		for (int j = 0; j < m_aPluginsByEvent[i]->size(); ++j)
+		for (size_t j = 0; j < m_aPluginsByEvent[i]->size(); ++j)
 		{
 			const PluginInfoPtr & plugin = m_aPluginsByEvent[i]->at(j);
 			if (plugin->m_disabled)
 				list.push_back(String(plugin->m_name));
 		}
 	}
-	GetOptionsMgr()->SaveOption(OPT_PLUGINS_DISABLED_LIST, string_join(list.begin(), list.end(), _T("|")));
+	GetOptionsMgr()->SaveOption(OPT_PLUGINS_DISABLED_LIST, strutils::join(list.begin(), list.end(), _T("|")));
 }
 
 void CScriptsOfThread::FreeAllScripts()
@@ -809,7 +812,7 @@ void CScriptsOfThread::FreeScriptsForEvent(const wchar_t *transformationEvent)
 PluginInfo *CScriptsOfThread::GetAutomaticPluginByFilter(const wchar_t *transformationEvent, const String& filteredText)
 {
 	PluginArray * piFileScriptArray = GetAvailableScripts(transformationEvent);
-	for (int step = 0 ; step < piFileScriptArray->size() ; step ++)
+	for (size_t step = 0 ; step < piFileScriptArray->size() ; step ++)
 	{
 		const PluginInfoPtr & plugin = piFileScriptArray->at(step);
 		if (plugin->m_bAutomatic == false || plugin->m_disabled)
@@ -823,14 +826,13 @@ PluginInfo *CScriptsOfThread::GetAutomaticPluginByFilter(const wchar_t *transfor
 
 PluginInfo * CScriptsOfThread::GetPluginByName(const wchar_t *transformationEvent, const String& name)
 {
-	int i;
-	for (i = 0 ; i < nTransformationEvents ; i ++)
+	for (int i = 0 ; i < nTransformationEvents ; i ++)
 		if (!transformationEvent || wcscmp(transformationEvent, TransformationCategories[i]) == 0)
 		{
 			if (m_aPluginsByEvent[i] == NULL)
 				m_aPluginsByEvent[i].reset(::GetAvailableScripts(TransformationCategories[i]));
 
-			for (int j = 0 ; j <  m_aPluginsByEvent[i]->size() ; j++)
+			for (size_t j = 0 ; j <  m_aPluginsByEvent[i]->size() ; j++)
 				if (m_aPluginsByEvent[i]->at(j)->m_name == name)
 					return m_aPluginsByEvent[i]->at(j).get();
 		}
@@ -839,13 +841,12 @@ PluginInfo * CScriptsOfThread::GetPluginByName(const wchar_t *transformationEven
 
 PluginInfo *  CScriptsOfThread::GetPluginInfo(LPDISPATCH piScript)
 {
-	int i, j;
-	for (i = 0 ; i < nTransformationEvents ; i ++) 
+	for (int i = 0 ; i < nTransformationEvents ; i ++) 
 	{
 		if (m_aPluginsByEvent[i] == NULL)
 			continue;
 		const PluginArrayPtr& pArray = m_aPluginsByEvent[i];
-		for (j = 0 ; j < pArray->size() ; j++)
+		for (size_t j = 0 ; j < pArray->size() ; j++)
 			if ((*pArray)[j]->m_lpDispatch == piScript)
 				return (*pArray)[j].get();
 	}
@@ -885,8 +886,7 @@ CScriptsOfThread * CAllThreadsScripts::GetActiveSet()
 {
 	FastMutex::ScopedLock lock(m_aAvailableThreadsLock);
 	unsigned long nThreadId = GetCurrentThreadId();
-	int i;
-	for (i = 0 ; i < m_aAvailableThreads.size() ; i++)
+	for (size_t i = 0 ; i < m_aAvailableThreads.size() ; i++)
 		if (m_aAvailableThreads[i] && m_aAvailableThreads[i]->m_nThreadId == nThreadId)
 			return m_aAvailableThreads[i];
 	assert(0);
@@ -896,8 +896,7 @@ CScriptsOfThread * CAllThreadsScripts::GetActiveSetNoAssert()
 {
 	FastMutex::ScopedLock lock(m_aAvailableThreadsLock);
 	unsigned long nThreadId = GetCurrentThreadId();
-	int i;
-	for (i = 0 ; i < m_aAvailableThreads.size() ; i++)
+	for (size_t i = 0 ; i < m_aAvailableThreads.size() ; i++)
 		if (m_aAvailableThreads[i] && m_aAvailableThreads[i]->m_nThreadId == nThreadId)
 			return m_aAvailableThreads[i];
 	return NULL;
@@ -950,7 +949,7 @@ static void ShowPluginErrorMessage(IDispatch *piScript, LPTSTR description)
 	PluginInfo * pInfo = CAllThreadsScripts::GetActiveSet()->GetPluginInfo(piScript);
 	assert(pInfo != NULL);
 	assert(description != NULL);	
-	AppErrorMessageBox(string_format(_T("%s: %s"), pInfo->m_name.c_str(), description));
+	AppErrorMessageBox(strutils::format(_T("%s: %s"), pInfo->m_name.c_str(), description));
 }
 
 /**
@@ -960,7 +959,7 @@ static void ShowPluginErrorMessage(IDispatch *piScript, LPTSTR description)
  */
 static HRESULT safeInvokeA(LPDISPATCH pi, VARIANT *ret, DISPID id, LPCCH op, ...)
 {
-	HRESULT h;
+	HRESULT h = E_FAIL;
 	SE_Handler seh;
 	TCHAR errorText[500];
 	bool bExceptionCatched = false;	
@@ -1013,7 +1012,7 @@ static HRESULT safeInvokeA(LPDISPATCH pi, VARIANT *ret, DISPID id, LPCCH op, ...
  */
 static HRESULT safeInvokeW(LPDISPATCH pi, VARIANT *ret, LPCOLESTR silent, LPCCH op, ...)
 {
-	HRESULT h;
+	HRESULT h = E_FAIL;
 	SE_Handler seh;
 	TCHAR errorText[500];
 	bool bExceptionCatched = false;
@@ -1062,6 +1061,9 @@ static HRESULT safeInvokeW(LPDISPATCH pi, VARIANT *ret, LPCOLESTR silent, LPCCH 
 
 ////////////////////////////////////////////////////////////////////////////////
 // invoke for plugins
+
+namespace plugin
+{
 
 /*
  * ----- about VariantClear -----
@@ -1430,4 +1432,6 @@ bool InvokeShowSettingsDialog(IDispatch *piScript)
 	VariantClear(&vboolHandled);
 
 	return (bSuccess);
+}
+
 }

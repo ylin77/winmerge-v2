@@ -113,7 +113,12 @@ public:
 	void AddParentFolderItem(bool bEnable);
 	void RefreshOptions();
 
-	LRESULT HandleMenuMessage(UINT message, WPARAM wParam, LPARAM lParam);
+	bool HasNextDiff();
+	bool HasPrevDiff();
+	void MoveToNextDiff();
+	void MoveToPrevDiff();
+	void OpenNextDiff();
+	void OpenPrevDiff();
 
 // Implementation types
 private:
@@ -123,8 +128,6 @@ private:
 	void GetItemFileNames(int sel, String& strLeft, String& strRight) const;
 	void GetItemFileNames(int sel, PathContext * paths) const;
 	void FormatEncodingDialogDisplays(CLoadSaveCodepageDlg * dlg);
-	bool IsItemLeftOnly(int code);
-	bool IsItemRightOnly(int code);
 	DirActions MakeDirActions(DirActions::method_type func) const;
 	DirActions MakeDirActions(DirActions::method_type2 func) const;
 	Counts Count(DirActions::method_type2 func) const;
@@ -133,6 +136,7 @@ private:
 	void DoOpen(SIDE_TYPE stype);
 	void DoOpenWith(SIDE_TYPE stype);
 	void DoOpenWithEditor(SIDE_TYPE stype);
+	void DoOpenParentFolder(SIDE_TYPE stype);
 	void DoUpdateOpen(SELECTIONTYPE selectionType, CCmdUI* pCmdUI);
 	void ConfirmAndPerformActions(FileActionScript & actions);
 	void PerformActionList(FileActionScript & actions);
@@ -253,6 +257,10 @@ protected:
 	template<SIDE_TYPE stype>
 	afx_msg void OnUpdateCtxtDirOpenWithEditor(CCmdUI* pCmdUI);
 	template<SIDE_TYPE stype>
+	afx_msg void OnCtxtDirOpenParentFolder();
+	template<SIDE_TYPE stype>
+	afx_msg void OnUpdateCtxtDirOpenParentFolder(CCmdUI* pCmdUI);
+	template<SIDE_TYPE stype>
 	afx_msg void OnCtxtDirCopyTo();
 	template<SIDE_TYPE stype>
 	afx_msg void OnUpdateCtxtDirCopyTo(CCmdUI* pCmdUI);
@@ -335,6 +343,9 @@ protected:
 	afx_msg void OnOptionsShowUniqueRight();
 	afx_msg void OnOptionsShowBinaries();
 	afx_msg void OnOptionsShowSkipped();
+	afx_msg void OnOptionsShowDifferentLeftOnly();
+	afx_msg void OnOptionsShowDifferentMiddleOnly();
+	afx_msg void OnOptionsShowDifferentRightOnly();
 	afx_msg void OnUpdateOptionsShowdifferent(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateOptionsShowidentical(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateOptionsShowuniqueleft(CCmdUI* pCmdUI);
@@ -342,6 +353,9 @@ protected:
 	afx_msg void OnUpdateOptionsShowuniqueright(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateOptionsShowBinaries(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateOptionsShowSkipped(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateOptionsShowDifferentLeftOnly(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateOptionsShowDifferentMiddleOnly(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateOptionsShowDifferentRightOnly(CCmdUI* pCmdUI);
 	afx_msg void OnMergeCompare();
 	template<SELECTIONTYPE seltype>
 	afx_msg void OnMergeCompare2();
@@ -411,9 +425,3 @@ public:
 inline CDirDoc* CDirView::GetDocument()
 { return reinterpret_cast<CDirDoc*>(m_pDocument); }
 #endif
-
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Developer Studio will insert additional declarations immediately before the previous line.

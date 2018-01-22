@@ -112,8 +112,6 @@ IMPLEMENT_DYNAMIC(CMessageBoxDialog, CDialog)
 
     m_aButtons.clear();
 
-	m_clrMainInstructionFont = CLR_NONE;
-
 	NONCLIENTMETRICS ncm = { sizeof NONCLIENTMETRICS };
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof NONCLIENTMETRICS, &ncm, 0);
 	m_font.CreateFontIndirect(&ncm.lfMessageFont);
@@ -129,6 +127,7 @@ IMPLEMENT_DYNAMIC(CMessageBoxDialog, CDialog)
 	else
 	{
 		m_fontMainInstruction.CreateFontIndirect(&ncm.lfMessageFont);
+		m_clrMainInstructionFont = GetSysColor(COLOR_WINDOWTEXT);
 	}
 }
 
@@ -385,6 +384,35 @@ static UINT ModelessMesssageBoxThread(LPVOID lpParam)
 }
 
 /*
+ * Method for retrieving the former result of the message box from the registry.
+ */
+int CMessageBoxDialog::GetFormerResult()
+{
+	// Check whether the registry key was already generated.
+	if (m_strRegistryKey.IsEmpty())
+	{
+		// Create the registry key for this dialog.
+		m_strRegistryKey = GenerateRegistryKey();
+	}
+
+	// Try to read the former result of the message box from the registry.
+	return AfxGetApp()->GetProfileInt(
+		REGISTRY_SECTION_MESSAGEBOX, m_strRegistryKey, (-1));
+}
+
+/*
+ * Method for storing the former result of the message box to the registry.
+ */
+int CMessageBoxDialog::SetFormerResult(int nResult)
+{
+	int nOldResult = GetFormerResult();
+	// Try to write the former result of the message box to the registry.
+	AfxGetApp()->WriteProfileInt(
+		REGISTRY_SECTION_MESSAGEBOX, m_strRegistryKey, nResult);
+	return nOldResult;
+}
+
+/*
  *	Method for displaying the dialog.
  *
  *	If the MB_DONT_DISPLAY_AGAIN or MB_DONT_ASK_AGAIN flag is set, this
@@ -399,16 +427,8 @@ INT_PTR CMessageBoxDialog::DoModal ( )
 	if ( ( m_nStyle & MB_DONT_DISPLAY_AGAIN ) ||
 		( m_nStyle & MB_DONT_ASK_AGAIN ) )
 	{
-		// Check whether the registry key was already generated.
-		if ( m_strRegistryKey.IsEmpty() )
-		{
-			// Create the registry key for this dialog.
-			m_strRegistryKey = GenerateRegistryKey();
-		}
-
 		// Try to read the former result of the message box from the registry.
-		int nFormerResult = AfxGetApp()->GetProfileInt(
-			REGISTRY_SECTION_MESSAGEBOX, m_strRegistryKey, (-1));
+		int nFormerResult = GetFormerResult();
 
 		// Check whether a result was retrieved.
 		if ( nFormerResult != (-1) )
@@ -462,16 +482,7 @@ void CMessageBoxDialog::EndDialog ( int nResult )
 	if ( ( ( m_nStyle & MB_DONT_DISPLAY_AGAIN ) && bDontDisplayAgain ) ||
 		( ( m_nStyle & MB_DONT_ASK_AGAIN ) && bDontDisplayAgain ) )
 	{
-		// Check whether the registry key was already generated.
-		if ( m_strRegistryKey.IsEmpty() )
-		{
-			// Create the registry key for this dialog.
-			m_strRegistryKey = GenerateRegistryKey();
-		}
-		
-		// Store the result of the dialog in the registry.
-		AfxGetApp()->WriteProfileInt(REGISTRY_SECTION_MESSAGEBOX, 
-			m_strRegistryKey, nResult);
+		SetFormerResult(nResult);
 	}
 	
 	// Call the parent method.
@@ -504,6 +515,7 @@ BOOL CMessageBoxDialog::OnInitDialog ( )
 	ParseStyle();
 
 	// Create the elements of the dialog.
+	m_tooltips.Create(this);
 	CreateIconControl();
 	CreateMessageControl();
 	CreateCheckboxControl();
@@ -643,6 +655,13 @@ BOOL CMessageBoxDialog::OnCmdMsg ( UINT nID, int nCode, void* pExtra,
  */
 BOOL CMessageBoxDialog::PreTranslateMessage ( MSG* pMsg )
 {
+	if (pMsg->message == WM_LBUTTONDOWN ||
+		pMsg->message == WM_LBUTTONUP ||
+		pMsg->message == WM_MOUSEMOVE)
+	{
+		m_tooltips.RelayEvent(pMsg);
+	}
+
 	// Check whether it's a key message and whether it's not a disable timeout.
 	if ( pMsg->message == WM_KEYDOWN )
 	{
@@ -804,8 +823,7 @@ HBRUSH CMessageBoxDialog::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	{
 		pDC->SetBkMode(OPAQUE);
 		pDC->SetBkColor(::GetSysColor(COLOR_WINDOW));
-		if (m_clrMainInstructionFont != CLR_NONE)
-			pDC->SetTextColor(m_clrMainInstructionFont);
+		pDC->SetTextColor(m_clrMainInstructionFont);
 		return static_cast<HBRUSH>(GetSysColorBrush(COLOR_WINDOW));
 	}
 	return CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
@@ -1394,6 +1412,9 @@ void CMessageBoxDialog::CreateCheckboxControl ( )
 		// Set the font of the control.
 		btnCheckbox.SetFont(pWndFont);
 
+		// Add a tooltip to the checkbox
+		m_tooltips.AddTool(&btnCheckbox, LoadResString(IDS_MESSAGEBOX_CHECKBOX_TOOLTIP).c_str());
+
 		// Remove the subclassing again.
 		btnCheckbox.UnsubclassWindow();
 	}
@@ -1431,7 +1452,7 @@ void CMessageBoxDialog::CreateButtonControls ( )
 		{
 			// Add the remaining seconds to the text of the button.
 			TCHAR szTimeoutSeconds[40];
-			wsprintf(szTimeoutSeconds, _T(" = %d"), m_nTimeoutSeconds);
+			wsprintf(szTimeoutSeconds, _T(" = %u"), m_nTimeoutSeconds);
 			strButtonText += szTimeoutSeconds;
 		}
 
@@ -1531,9 +1552,6 @@ void CMessageBoxDialog::DefineLayout ( )
 				XDialogUnitToPixel(CX_BORDER));
 			sClient.cy = max(sClient.cy, nYPosition + m_sCheckbox.cy +
 				YDialogUnitToPixel(CY_BORDER));
-
-			// Define the y positions.
-			nYPosition += m_sCheckbox.cy + YDialogUnitToPixel(CY_BORDER);
 		}
 	}
 

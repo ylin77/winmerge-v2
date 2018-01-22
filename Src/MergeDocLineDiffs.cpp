@@ -187,6 +187,8 @@ void CMergeDoc::GetWordDiffArray(int nLineIndex, vector<WordDiff> *pWordDiffs)
 
 	for (file = 0; file < m_nBuffers; file++)
 	{
+		if (nLineEnd >= m_ptBuf[file]->GetLineCount())
+			return;
 		nOffsets[file].reset(new int[nLineEnd - nLineBegin + 1]);
 		CString strText;
 		if (nLineBegin != nLineEnd || m_ptBuf[file]->GetLineLength(nLineEnd) > 0)
@@ -205,12 +207,12 @@ void CMergeDoc::GetWordDiffArray(int nLineIndex, vector<WordDiff> *pWordDiffs)
 	int breakType = GetBreakType(); // whitespace only or include punctuation
 	bool byteColoring = GetByteColoringOption();
 
-	std::vector<wdiff> worddiffs;
+	std::vector<strdiff::wdiff> worddiffs;
 	// Make the call to stringdiffs, which does all the hard & tedious computations
-	sd_ComputeWordDiffs(m_nBuffers, str, casitive, xwhite, breakType, byteColoring, &worddiffs);
+	strdiff::ComputeWordDiffs(m_nBuffers, str, casitive, xwhite, breakType, byteColoring, &worddiffs);
 
 	int i;
-	std::vector<wdiff>::iterator it;
+	std::vector<strdiff::wdiff>::iterator it;
 	for (i = 0, it = worddiffs.begin(); it != worddiffs.end(); ++i, ++it)
 	{
 		WordDiff wd;

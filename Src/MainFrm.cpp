@@ -72,6 +72,7 @@
 #include "LanguageSelect.h"
 #include "version.h"
 #include "Bitmap.h"
+#include "CCrystalTextMarkers.h"
 
 using std::vector;
 using boost::begin;
@@ -222,8 +223,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_TOOLBAR_NONE, ID_TOOLBAR_HUGE, OnUpdateToolbarSize)
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
-	ON_COMMAND(ID_HELP_CHECKFORUPDATES, OnHelpCheckForUpdates)
-	ON_UPDATE_COMMAND_UI(ID_HELP_CHECKFORUPDATES, OnUpdateHelpCheckForUpdates)
+	ON_COMMAND(ID_HELP_RELEASENOTES, OnHelpReleasenotes)
+	ON_COMMAND(ID_HELP_TRANSLATIONS, OnHelpTranslations)
 	ON_COMMAND(ID_FILE_OPENCONFLICT, OnFileOpenConflict)
 	ON_COMMAND(ID_PLUGINS_LIST, OnPluginsList)
 	ON_UPDATE_COMMAND_UI(ID_STATUS_PLUGIN, OnUpdatePluginName)
@@ -288,7 +289,7 @@ CMainFrame::CMainFrame()
 CMainFrame::~CMainFrame()
 {
 	GetOptionsMgr()->SaveOption(OPT_TABBAR_AUTO_MAXWIDTH, m_wndTabBar.GetAutoMaxWidth());
-	sd_Close();
+	strdiff::Close();
 }
 
 #ifdef _UNICODE
@@ -353,6 +354,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	const int lpx = CClientDC(this).GetDeviceCaps(LOGPIXELSX);
 	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
+	m_wndStatusBar.SetPaneInfo(0, 0, SBPS_STRETCH | SBPS_NOBORDERS, 0);
 	m_wndStatusBar.SetPaneInfo(1, ID_STATUS_PLUGIN, 0, pointToPixel(225));
 	m_wndStatusBar.SetPaneInfo(2, ID_STATUS_MERGINGMODE, 0, pointToPixel(75)); 
 	m_wndStatusBar.SetPaneInfo(3, ID_STATUS_DIFFNUM, 0, pointToPixel(112)); 
@@ -628,13 +630,11 @@ bool CMainFrame::ShowAutoMergeDoc(CDirDoc * pDirDoc,
 
 std::array<bool, 3> GetROFromFlags(int nFiles, const DWORD dwFlags[])
 {
-	std::array<bool, 3> bRO;
+	std::array<bool, 3> bRO = { false, false, false };
 	for (int pane = 0; pane < nFiles; pane++)
 	{
 		if (dwFlags)
 			bRO[pane] = ((dwFlags[pane] & FFILEOPEN_READONLY) > 0);
-		else
-			bRO[pane] = false;
 	}
 	return bRO;
 }
@@ -783,7 +783,7 @@ bool CMainFrame::ShowImgMergeDoc(CDirDoc * pDirDoc, int nFiles, const FileLocati
 
 	for (int pane = 0; pane < nFiles; pane++)
 	{
-		if (dwFlags[pane] & FFILEOPEN_AUTOMERGE)
+		if (dwFlags && (dwFlags[pane] & FFILEOPEN_AUTOMERGE))
 			pImgMergeFrame->DoAutoMerge(pane);
 	}
 
@@ -839,7 +839,7 @@ void CMainFrame::OnOptions()
 
 		theApp.UpdateCodepageModule();
 
-		sd_SetBreakChars(GetOptionsMgr()->GetString(OPT_BREAK_SEPARATORS).c_str());
+		strdiff::SetBreakChars(GetOptionsMgr()->GetString(OPT_BREAK_SEPARATORS).c_str());
 
 		// make an attempt at rescanning any open diff sessions
 		ApplyDiffOptions();
@@ -859,7 +859,7 @@ static bool AddToRecentDocs(const PathContext& paths, const unsigned flags[], bo
 	String params, title;
 	for (int nIndex = 0; nIndex < paths.GetSize(); ++nIndex)
 	{
-		if (flags[nIndex] & FFILEOPEN_READONLY)
+		if (flags && (flags[nIndex] & FFILEOPEN_READONLY))
 		{
 			switch (nIndex)
 			{
@@ -901,8 +901,8 @@ BOOL CMainFrame::DoFileOpen(const PathContext * pFiles /*=NULL*/,
 	if (pDirDoc && !pDirDoc->CloseMergeDocs())
 		return FALSE;
 
-	g_bUnpackerMode = theApp.GetProfileInt(_T("Settings"), _T("UnpackerMode"), PLUGIN_MANUAL);
-	g_bPredifferMode = theApp.GetProfileInt(_T("Settings"), _T("PredifferMode"), PLUGIN_MANUAL);
+	FileTransform::g_bUnpackerMode = theApp.GetProfileInt(_T("Settings"), _T("UnpackerMode"), PLUGIN_MANUAL);
+	FileTransform::g_bPredifferMode = theApp.GetProfileInt(_T("Settings"), _T("PredifferMode"), PLUGIN_MANUAL);
 
 	Merge7zFormatMergePluginScope scope(infoUnpacker);
 
@@ -1023,7 +1023,7 @@ BOOL CMainFrame::DoFileOpen(const PathContext * pFiles /*=NULL*/,
 
 		if (!prediffer.empty())
 		{
-			String strBothFilenames = string_join(files.begin(), files.end(), _T("|"));
+			String strBothFilenames = strutils::join(files.begin(), files.end(), _T("|"));
 			pDirDoc->GetPluginManager().SetPrediffer(strBothFilenames, prediffer);
 		}
 
@@ -1031,7 +1031,7 @@ BOOL CMainFrame::DoFileOpen(const PathContext * pFiles /*=NULL*/,
 				infoUnpacker);
 	}
 
-	if (pFiles && !(dwFlags[0] & FFILEOPEN_NOMRU))
+	if (pFiles && (!dwFlags || !(dwFlags[0] & FFILEOPEN_NOMRU)))
 	{
 		String filter = GetOptionsMgr()->GetString(OPT_FILEFILTER_CURRENT);
 		AddToRecentDocs(*pFiles, (unsigned *)dwFlags, bRecurse, filter);
@@ -1045,8 +1045,14 @@ void CMainFrame::UpdateFont(FRAMETYPE frame)
 	if (frame == FRAME_FOLDER)
 	{
 		for (auto pDoc : GetAllDirDocs())
+		{
 			if (pDoc)
-				pDoc->GetMainView()->SetFont(m_lfDir);
+			{
+				CDirView *pView = pDoc->GetMainView();
+				if (pView)
+					pView->SetFont(m_lfDir);
+			}
+		}
 	}
 	else
 	{
@@ -1287,13 +1293,13 @@ void CMainFrame::addToMru(LPCTSTR szItem, LPCTSTR szRegSubKey, UINT nMaxItems)
 	list.push_back(szItem);
 	for (UINT i=0 ; i<cnt; ++i)
 	{
-		s = AfxGetApp()->GetProfileString(szRegSubKey, string_format(_T("Item_%d"), i).c_str());
+		s = AfxGetApp()->GetProfileString(szRegSubKey, strutils::format(_T("Item_%d"), i).c_str());
 		if (s != szItem)
 			list.push_back(s);
 	}
 	cnt = list.size() > nMaxItems ? nMaxItems : static_cast<UINT>(list.size());
 	for (UINT i=0 ; i<cnt; ++i)
-		AfxGetApp()->WriteProfileString(szRegSubKey, string_format(_T("Item_%d"), i).c_str(), list[i]);
+		AfxGetApp()->WriteProfileString(szRegSubKey, strutils::format(_T("Item_%d"), i).c_str(), list[i]);
 	// update count
 	AfxGetApp()->WriteProfileInt(szRegSubKey, _T("Count"), cnt);
 }
@@ -1396,7 +1402,7 @@ void CMainFrame::OnDropFiles(const std::vector<String>& dropped_files)
 		}
 		if (IsConflictFile(files[0]))
 		{
-			DoOpenConflict(files[0], true);
+			DoOpenConflict(files[0], nullptr, true);
 			return;
 		}
 	}
@@ -1409,13 +1415,13 @@ void CMainFrame::OnPluginUnpackMode(UINT nID )
 	switch (nID)
 	{
 	case ID_UNPACK_MANUAL:
-		g_bUnpackerMode = PLUGIN_MANUAL;
+		FileTransform::g_bUnpackerMode = PLUGIN_MANUAL;
 		break;
 	case ID_UNPACK_AUTO:
-		g_bUnpackerMode = PLUGIN_AUTO;
+		FileTransform::g_bUnpackerMode = PLUGIN_AUTO;
 		break;
 	}
-	theApp.WriteProfileInt(_T("Settings"), _T("UnpackerMode"), g_bUnpackerMode);
+	theApp.WriteProfileInt(_T("Settings"), _T("UnpackerMode"), FileTransform::g_bUnpackerMode);
 }
 
 void CMainFrame::OnUpdatePluginUnpackMode(CCmdUI* pCmdUI) 
@@ -1423,27 +1429,27 @@ void CMainFrame::OnUpdatePluginUnpackMode(CCmdUI* pCmdUI)
 	pCmdUI->Enable(GetOptionsMgr()->GetBool(OPT_PLUGINS_ENABLED));
 
 	if (pCmdUI->m_nID == ID_UNPACK_MANUAL)
-		pCmdUI->SetRadio(PLUGIN_MANUAL == g_bUnpackerMode);
+		pCmdUI->SetRadio(PLUGIN_MANUAL == FileTransform::g_bUnpackerMode);
 	if (pCmdUI->m_nID == ID_UNPACK_AUTO)
-		pCmdUI->SetRadio(PLUGIN_AUTO == g_bUnpackerMode);
+		pCmdUI->SetRadio(PLUGIN_AUTO == FileTransform::g_bUnpackerMode);
 }
 void CMainFrame::OnPluginPrediffMode(UINT nID )
 {
 	switch (nID)
 	{
 	case ID_PREDIFFER_MANUAL:
-		g_bPredifferMode = PLUGIN_MANUAL;
+		FileTransform::g_bPredifferMode = PLUGIN_MANUAL;
 		break;
 	case ID_PREDIFFER_AUTO:
-		g_bPredifferMode = PLUGIN_AUTO;
+		FileTransform::g_bPredifferMode = PLUGIN_AUTO;
 		break;
 	}
 	PrediffingInfo infoPrediffer;
 	for (auto pMergeDoc : GetAllMergeDocs())
 		pMergeDoc->SetPrediffer(&infoPrediffer);
 	for (auto pDirDoc : GetAllDirDocs())
-		pDirDoc->GetPluginManager().SetPrediffSettingAll(g_bPredifferMode);
-	theApp.WriteProfileInt(_T("Settings"), _T("PredifferMode"), g_bPredifferMode);
+		pDirDoc->GetPluginManager().SetPrediffSettingAll(FileTransform::g_bPredifferMode);
+	theApp.WriteProfileInt(_T("Settings"), _T("PredifferMode"), FileTransform::g_bPredifferMode);
 }
 
 void CMainFrame::OnUpdatePluginPrediffMode(CCmdUI* pCmdUI) 
@@ -1451,9 +1457,9 @@ void CMainFrame::OnUpdatePluginPrediffMode(CCmdUI* pCmdUI)
 	pCmdUI->Enable(GetOptionsMgr()->GetBool(OPT_PLUGINS_ENABLED));
 
 	if (pCmdUI->m_nID == ID_PREDIFFER_MANUAL)
-		pCmdUI->SetRadio(PLUGIN_MANUAL == g_bPredifferMode);
+		pCmdUI->SetRadio(PLUGIN_MANUAL == FileTransform::g_bPredifferMode);
 	if (pCmdUI->m_nID == ID_PREDIFFER_AUTO)
-		pCmdUI->SetRadio(PLUGIN_AUTO == g_bPredifferMode);
+		pCmdUI->SetRadio(PLUGIN_AUTO == FileTransform::g_bPredifferMode);
 }
 /**
  * @brief Called when "Reload Plugins" item is updated
@@ -1538,7 +1544,7 @@ void CMainFrame::OnSaveConfigData()
 	else
 	{
 		String sFileName = configLog.GetFileName();
-		String msg = string_format_string2(_("Cannot open file\n%1\n\n%2"), sFileName, sError);
+		String msg = strutils::format_string2(_("Cannot open file\n%1\n\n%2"), sFileName, sError);
 		AfxMessageBox(msg.c_str(), MB_OK | MB_ICONSTOP);
 	}
 }
@@ -1786,11 +1792,11 @@ void CMainFrame::OnResizePanes()
 		if (bResize)
 			pFrame->UpdateSplitter();
 	}
-	else if (CHexMergeFrame *pFrame = DYNAMIC_DOWNCAST(CHexMergeFrame, pActiveFrame))
+	else if (CHexMergeFrame *pFrame1 = DYNAMIC_DOWNCAST(CHexMergeFrame, pActiveFrame))
 	{
-		pFrame->UpdateAutoPaneResize();
+		pFrame1->UpdateAutoPaneResize();
 		if (bResize)
-			pFrame->UpdateSplitter();
+			pFrame1->UpdateSplitter();
 	}
 }
 
@@ -1831,6 +1837,10 @@ LRESULT CMainFrame::OnCopyData(WPARAM wParam, LPARAM lParam)
 		return FALSE;
 	ReplyMessage(TRUE);
 	MergeCmdLineInfo cmdInfo(pchData);
+	if (cmdInfo.m_bNoPrefs)
+		GetOptionsMgr()->SetSerializing(false); // Turn off serializing to registry.
+	for (const auto& it : cmdInfo.m_Options)
+		GetOptionsMgr()->Set(it.first, it.second);
 	theApp.ParseArgsAndDoOpen(cmdInfo, this);
 	return TRUE;
 }
@@ -2201,64 +2211,23 @@ bool CMainFrame::AskCloseConfirmation()
 	return (ret == IDYES);
 }
 
-void CMainFrame::OnHelpCheckForUpdates()
+/**
+ * @brief Shows the release notes for user.
+ * This function opens release notes HTML document into browser.
+ */
+void CMainFrame::OnHelpReleasenotes()
 {
-	CVersionInfo version(AfxGetResourceHandle());
-	CInternetSession session;
-	try
-	{
-		CHttpFile *file = (CHttpFile *)session.OpenURL(GetOptionsMgr()->GetString(OPT_CURRENT_VERSION_URL).c_str());
-		if (!file)
-			return;
-		char buf[256] = { 0 };
-		file->Read(buf, sizeof(buf));
-		file->Close();
-		String current_version = ucr::toTString(buf);
-		string_replace(current_version, _T("\r\n"), _T(""));
-		delete file;
-
-		int exe_vers[4] = { 0 }, cur_vers[4] = { 0 };
-		_stscanf(version.GetProductVersion().c_str(), _T("%d.%d.%d.%d"), &exe_vers[0], &exe_vers[1], &exe_vers[2], &exe_vers[3]);
-		_stscanf(current_version.c_str(),             _T("%d.%d.%d.%d"), &cur_vers[0], &cur_vers[1], &cur_vers[2], &cur_vers[3]);
-		String exe_version_hex = string_format(_T("%08x%08x%08x%08x"), exe_vers[0], exe_vers[1], exe_vers[2], exe_vers[3]);
-		String cur_version_hex = string_format(_T("%08x%08x%08x%08x"), cur_vers[0], cur_vers[1], cur_vers[2], cur_vers[3]);
-
-		switch (exe_version_hex.compare(cur_version_hex))
-		{
-		case 1:
-			if (cur_version_hex == _T("00000000000000000000000000000000"))
-			{
-				String msg = _("Failed to download latest version information");
-				AfxMessageBox(msg.c_str(), MB_ICONERROR);
-				break;
-			}
-			// pass through
-		case 0:
-		{
-			String msg = _("Your software is up to date");
-			AfxMessageBox(msg.c_str(), MB_ICONINFORMATION);
-			break;
-		}
-		case -1:
-		{
-			String msg = string_format_string2(_("A new version of WinMerge is available.\n%1 is now available (you have %2). Would you like to download it now?"), current_version, version.GetProductVersion());
-			if (AfxMessageBox(msg.c_str(), MB_ICONINFORMATION | MB_YESNO) == IDYES)
-				ShellExecute(NULL, _T("open"), GetOptionsMgr()->GetString(OPT_DOWNLOAD_URL).c_str(), NULL, NULL, SW_SHOWNORMAL);
-			break;
-		}
-		}
-	}
-	catch (CException& e)
-	{
-		TCHAR msg[512];
-		e.GetErrorMessage(msg, sizeof(msg)/sizeof(msg[0]));
-		AfxMessageBox(msg, MB_ICONERROR);
-	}
+	const String sPath = paths::ConcatPath(env::GetProgPath(), RelNotes);
+	ShellExecute(NULL, _T("open"), sPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
 }
 
-void CMainFrame::OnUpdateHelpCheckForUpdates(CCmdUI* pCmdUI)
+/**
+ * @brief Shows the translations page.
+ * This function opens translations page URL into browser.
+ */
+void CMainFrame::OnHelpTranslations()
 {
-	pCmdUI->Enable(!GetOptionsMgr()->GetString(OPT_CURRENT_VERSION_URL).empty());
+	ShellExecute(NULL, _T("open"), TranslationsUrl, NULL, NULL, SW_SHOWNORMAL);
 }
 
 /**
@@ -2287,7 +2256,7 @@ void CMainFrame::OnFileOpenConflict()
  * @param [in] checked If true, do not check if it really is project file.
  * @return TRUE if conflict file was opened for resolving.
  */
-BOOL CMainFrame::DoOpenConflict(const String& conflictFile, bool checked)
+BOOL CMainFrame::DoOpenConflict(const String& conflictFile, const String strDesc[], bool checked)
 {
 	BOOL conflictCompared = FALSE;
 
@@ -2296,7 +2265,7 @@ BOOL CMainFrame::DoOpenConflict(const String& conflictFile, bool checked)
 		bool confFile = IsConflictFile(conflictFile);
 		if (!confFile)
 		{
-			String message = string_format_string1(_("The file\n%1\nis not a conflict file."), conflictFile);
+			String message = strutils::format_string1(_("The file\n%1\nis not a conflict file."), conflictFile);
 			AfxMessageBox(message.c_str(), MB_ICONSTOP);
 			return FALSE;
 		}
@@ -2311,21 +2280,39 @@ BOOL CMainFrame::DoOpenConflict(const String& conflictFile, bool checked)
 	TempFilePtr vTemp(new TempFile());
 	String revFile = vTemp->Create(_T("confv_"), ext);
 	m_tempFiles.push_back(vTemp);
+	TempFilePtr bTemp(new TempFile());
+	String baseFile = vTemp->Create(_T("confb_"), ext);
+	m_tempFiles.push_back(bTemp);
 
 	// Parse conflict file into two files.
-	bool inners;
+	bool inners, threeWay;
 	int iGuessEncodingType = GetOptionsMgr()->GetInt(OPT_CP_DETECT);
-	bool success = ParseConflictFile(conflictFile, workFile, revFile, iGuessEncodingType, inners);
+	bool success = ParseConflictFile(conflictFile, workFile, revFile, baseFile, iGuessEncodingType, inners, threeWay);
 
 	if (success)
 	{
 		// Open two parsed files to WinMerge, telling WinMerge to
 		// save over original file (given as third filename).
 		theApp.m_strSaveAsPath = conflictFile;
-		String strDesc[2] = { _("Theirs File"), _("Mine File") };
-		DWORD dwFlags[2] = {FFILEOPEN_READONLY | FFILEOPEN_NOMRU, FFILEOPEN_NOMRU | FFILEOPEN_MODIFIED};
-		conflictCompared = DoFileOpen(&PathContext(revFile, workFile), 
-					dwFlags);
+		if (!threeWay)
+		{
+			String strDesc2[2] = { 
+				(strDesc && !strDesc[0].empty()) ? strDesc[0] : _("Theirs File"),
+				(strDesc && !strDesc[2].empty()) ? strDesc[2] : _("Mine File") };
+			DWORD dwFlags[2] = {FFILEOPEN_READONLY | FFILEOPEN_NOMRU, FFILEOPEN_NOMRU | FFILEOPEN_MODIFIED};
+			PathContext tmpPathContext(revFile, workFile);
+			conflictCompared = DoFileOpen(&tmpPathContext, dwFlags, strDesc2);
+		}
+		else
+		{
+			String strDesc3[3] = {
+				(strDesc && !strDesc[0].empty()) ? strDesc[0] : _("Base File"),
+				(strDesc && !strDesc[1].empty()) ? strDesc[1] : _("Theirs File"),
+				(strDesc && !strDesc[2].empty()) ? strDesc[2] : _("Mine File") };
+			PathContext tmpPathContext(baseFile, revFile, workFile);
+			DWORD dwFlags[3] = {FFILEOPEN_READONLY | FFILEOPEN_NOMRU, FFILEOPEN_READONLY | FFILEOPEN_NOMRU, FFILEOPEN_NOMRU | FFILEOPEN_MODIFIED};
+			conflictCompared = DoFileOpen(&tmpPathContext, dwFlags, strDesc3);
+		}
 	}
 	else
 	{
@@ -2448,7 +2435,7 @@ void CMainFrame::OnUpdateCompareMethod(CCmdUI* pCmdUI)
 void CMainFrame::OnMRUs(UINT nID)
 {
 	std::vector<JumpList::Item> mrus = JumpList::GetRecentDocs(GetOptionsMgr()->GetInt(OPT_MRU_MAX));
-	const int idx = nID - ID_MRU_FIRST;
+	const size_t idx = nID - ID_MRU_FIRST;
 	if (idx < mrus.size())
 	{
 		MergeCmdLineInfo cmdInfo((_T("\"") + mrus[idx].path + _T("\" ") + mrus[idx].params).c_str());
@@ -2464,7 +2451,7 @@ void CMainFrame::OnUpdateNoMRUs(CCmdUI* pCmdUI)
 		return;
 	
 	// empty the menu
-	int i = ::GetMenuItemCount(hMenu);
+	size_t i = ::GetMenuItemCount(hMenu);
 	while (i --)
 		::DeleteMenu(hMenu, 0, MF_BYPOSITION);
 
@@ -2481,7 +2468,7 @@ void CMainFrame::OnUpdateNoMRUs(CCmdUI* pCmdUI)
 		int ID = ID_MRU_FIRST;	// first ID in menu
 		for (i = 0 ; i < mrus.size() ; i++, ID++)
 			::AppendMenu(hMenu, MF_STRING, ID, 
-				((i < 9 ? string_format(_T("&%d "), i+1) : string_format(_T("&%c "), 'a' + i - 9)) 
+				((i < 9 ? strutils::format(_T("&%d "), i+1) : strutils::format(_T("&%c "), 'a' + i - 9)) 
 					+ mrus[i].title).c_str());
 	}
 

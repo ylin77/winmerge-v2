@@ -47,6 +47,7 @@
 #include "FileFilterHelper.h"
 #include "unicoder.h"
 #include "DirActions.h"
+#include "MessageBoxDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -72,6 +73,7 @@ CDirDoc::CDirDoc()
 , m_pCompareStats(nullptr)
 , m_bMarkedRescan(FALSE)
 , m_pTempPathContext(nullptr)
+, m_bGeneratingReport(false)
 {
 	m_nDirs = m_nDirsTemp;
 
@@ -613,9 +615,9 @@ void CDirDoc::SetTitle(LPCTSTR lpszTitle)
 			sDirName[index] = paths::FindFileName(strPath);
 		}
 		if (std::count(&sDirName[0], &sDirName[0] + m_nDirs, sDirName[0]) == m_nDirs)
-			sTitle = sDirName[0] + string_format(_T(" x %d"), m_nDirs);
+			sTitle = sDirName[0] + strutils::format(_T(" x %d"), m_nDirs);
  		else
-			sTitle = string_join(&sDirName[0], &sDirName[0] + m_nDirs, _T(" - "));
+			sTitle = strutils::join(&sDirName[0], &sDirName[0] + m_nDirs, _T(" - "));
  		CDocument::SetTitle(sTitle.c_str());
 	}	
 }
@@ -644,4 +646,50 @@ void CDirDoc::Swap(int idx1, int idx2)
 	for (int nIndex = 0; nIndex < m_nDirs; nIndex++)
 		UpdateHeaderPath(nIndex);
 	SetTitle(NULL);
+}
+
+bool CDirDoc::MoveableToNextDiff()
+{
+	if (!m_pDirView)
+		return false;
+	CMessageBoxDialog dlg(nullptr, _("Do you want to move to the next file?").c_str());
+	const int nFormerResult = dlg.GetFormerResult();
+	if (nFormerResult != -1 && nFormerResult == IDNO)
+		return false;
+	return m_pDirView->HasNextDiff();
+}
+
+bool CDirDoc::MoveableToPrevDiff()
+{
+	if (!m_pDirView)
+		return false;
+	CMessageBoxDialog dlg(nullptr, _("Do you want to move to the previous file?").c_str());
+	const int nFormerResult = dlg.GetFormerResult();
+	if (nFormerResult != -1 && nFormerResult == IDNO)
+		return false;
+	return m_pDirView->HasPrevDiff();
+}
+
+void CDirDoc::MoveToNextDiff(IMergeDoc *pMergeDoc)
+{
+	if (!m_pDirView)
+		return;
+	if (AfxMessageBox(_("Do you want to move to the next file?").c_str(), MB_YESNO | MB_DONT_ASK_AGAIN) == IDYES)
+	{
+		pMergeDoc->CloseNow();
+		m_pDirView->OpenNextDiff();
+		GetMainFrame()->OnUpdateFrameTitle(FALSE);
+	}
+}
+
+void CDirDoc::MoveToPrevDiff(IMergeDoc *pMergeDoc)
+{
+	if (!m_pDirView)
+		return;
+	if (AfxMessageBox(_("Do you want to move to the previous file?").c_str(), MB_YESNO | MB_DONT_ASK_AGAIN) == IDYES)
+	{
+		pMergeDoc->CloseNow();
+		m_pDirView->OpenPrevDiff();
+		GetMainFrame()->OnUpdateFrameTitle(FALSE);
+	}
 }

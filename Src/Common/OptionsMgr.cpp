@@ -218,7 +218,7 @@ bool COption::ConvertString(varprop::VariantValue & value, varprop::VT_TYPE nTyp
 	case varprop::VT_BOOL:
 		// Convert string to boolean
 		{
-			std::transform(svalue.begin(), svalue.end(), svalue.begin(), ::tolower);
+			svalue = strutils::makelower(svalue);
 			if (svalue == _T("1") || svalue == _T("yes")
 				|| svalue == _T("true"))
 			{
@@ -383,10 +383,8 @@ void COption::Reset()
  */
 int COptionsMgr::AddOption(const String& name, const varprop::VariantValue& defaultValue)
 {
-	int retVal = COption::OPT_OK;
 	COption tmpOption;
-
-	retVal = tmpOption.Init(name, defaultValue);
+	int retVal = tmpOption.Init(name, defaultValue);
 	if (retVal == COption::OPT_OK)
 		m_optionsMap[name] = tmpOption;
 
